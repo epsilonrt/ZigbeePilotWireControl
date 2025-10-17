@@ -1,0 +1,38 @@
+{
+  "name": "ZigbeePilotWire",
+  "version": "1.0.0",
+  "description": "An Arduino library to control pilot wire electric heaters via Zigbee.",
+  "keywords": [
+    "zigbee",
+    "pilot wire",
+    "heater",
+    "home automation",
+    "smart home"
+  ],
+  "authors": [
+    {
+      "name": "Pascal JEAN aka epsilonrt",
+      "email": "epsilonrt@gmail.com",
+      "url": "https://github.com/epsilonrt",
+      "maintainer": true
+    }
+  ],
+  "license": "BSD-3-Clause",
+  "homepage": "https://github.com/epsilonrt/ZigbeePilotWire",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/epsilonrt/ZigbeePilotWire.git"
+  },
+  "frameworks": [
+    "arduino"
+  ],
+  "platforms": [
+    "espressif32"
+  ],
+  "dependencies": [
+    {
+      "name": "Zigbee",
+      "version": "^3.3.0"
+    }
+  ]
+}
