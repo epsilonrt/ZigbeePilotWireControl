@@ -3,61 +3,77 @@
 
 #include "ZigbeePilotWireControl.h"
 
-ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint) : ZigbeeEP (endpoint) {
-  _device_id = ESP_ZB_HA_THERMOSTAT_DEVICE_ID;  //There is no FAN_CONTROL_DEVICE_ID in the Zigbee spec
+ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint) :
+  ZigbeeEP (endpoint), _current_mode (PILOTWIRE_MODE_OFF), _on_mode_change (nullptr) {
+  esp_err_t ret;
 
-  //Create basic analog sensor clusters without configuration
+  _device_id = ESP_ZB_HA_THERMOSTAT_DEVICE_ID;
+
+  // Create cluster list
   _cluster_list = esp_zb_zcl_cluster_list_create();
+
+  // Add basic cluster
   esp_zb_cluster_list_add_basic_cluster (_cluster_list, esp_zb_basic_cluster_create (NULL), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+
+  // Add identify cluster
   esp_zb_cluster_list_add_identify_cluster (_cluster_list, esp_zb_identify_cluster_create (NULL), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-  esp_zb_cluster_list_add_fan_control_cluster (_cluster_list, esp_zb_fan_control_cluster_create (NULL), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+
+  // Création du cluster custom Pilot Wire avec attribut manufacturer-specific
+  esp_zb_attribute_list_t *pilot_wire_cluster = esp_zb_zcl_attr_list_create (PILOT_WIRE_CLUSTER_ID);
+
+  uint8_t initial_mode = (uint8_t) _current_mode;
+
+  ret = esp_zb_cluster_add_manufacturer_attr (
+          pilot_wire_cluster,
+          PILOT_WIRE_CLUSTER_ID,
+          PILOT_WIRE_ATTR_MODE,
+          MANUFACTURER_CODE,
+          ESP_ZB_ZCL_ATTR_TYPE_8BIT_ENUM,
+          ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING,
+          &initial_mode
+        );
+  if (ret != ESP_OK) {
+    log_e ("Failed to add manufacturer-specific attribute to Pilot Wire cluster (error code: %d)", ret);
+  }
+
+  esp_zb_cluster_list_add_custom_cluster (_cluster_list, pilot_wire_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 
   _ep_config = {
-    .endpoint = _endpoint, .app_profile_id = ESP_ZB_AF_HA_PROFILE_ID, .app_device_id = ESP_ZB_HA_HEATING_COOLING_UNIT_DEVICE_ID, .app_device_version = 0
+    .endpoint = _endpoint,
+    .app_profile_id = ESP_ZB_AF_HA_PROFILE_ID,
+    .app_device_id = ESP_ZB_HA_THERMOSTAT_DEVICE_ID,
+    .app_device_version = 0
   };
 }
 
-bool ZigbeePilotWireControl::setPilotWireModeSequence (ZigbeePilotWireModeSequence sequence) {
-  esp_zb_attribute_list_t *fan_control_cluster =
-    esp_zb_cluster_list_get_cluster (_cluster_list, ESP_ZB_ZCL_CLUSTER_ID_FAN_CONTROL, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-  esp_err_t ret = esp_zb_cluster_update_attr (fan_control_cluster, ESP_ZB_ZCL_ATTR_FAN_CONTROL_FAN_MODE_SEQUENCE_ID, (void *) &sequence);
-  if (ret != ESP_OK) {
-    log_e ("Failed to set min value: 0x%x: %s", ret, esp_err_to_name (ret));
-    return false;
-  }
-  _current_mode_sequence = sequence;
-  _current_mode = PILOTWIRE_MODE_OFF;
-  // Set initial pilot wire mode to OFF
-  ret = esp_zb_cluster_update_attr (fan_control_cluster, ESP_ZB_ZCL_ATTR_FAN_CONTROL_FAN_MODE_ID, (void *) &_current_mode);
-  if (ret != ESP_OK) {
-    log_e ("Failed to set pilot wire mode: 0x%x: %s", ret, esp_err_to_name (ret));
-    return false;
-  }
-  return true;
-}
 
-//set attribute method -> method overridden in child class
-void ZigbeePilotWireControl::zbAttributeSet (const esp_zb_zcl_set_attr_value_message_t *message) {
-  //check the data and call right method
-  if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_FAN_CONTROL) {
-    if (message->attribute.id == ESP_ZB_ZCL_ATTR_FAN_CONTROL_FAN_MODE_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_8BIT_ENUM) {
+void
+ZigbeePilotWireControl::zbAttributeSet (const esp_zb_zcl_set_attr_value_message_t *message) {
+
+  if (message->info.cluster == PILOT_WIRE_CLUSTER_ID) {
+
+    if (message->attribute.id == PILOT_WIRE_ATTR_MODE && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_8BIT_ENUM) {
       _current_mode = * (ZigbeePilotWireMode *) message->attribute.data.value;
+      log_i ("Pilot Wire mode changed to: %d", _current_mode);
       pilotWireModeChanged();
     }
     else {
-      log_w ("Received message ignored. Attribute ID: %d not supported for Pilot Wire Control", message->attribute.id);
+      log_w ("Received message ignored. Attribute ID: 0x%04X not supported for Pilot Wire Control", message->attribute.id);
     }
   }
   else {
-    log_w ("Received message ignored. Cluster ID: %d not supported for Pilot Wire Control", message->info.cluster);
+    log_w ("Received message ignored. Cluster ID: 0x%04X not supported for Pilot Wire Control", message->info.cluster);
   }
 }
 
 void ZigbeePilotWireControl::pilotWireModeChanged() {
+
   if (_on_mode_change) {
+
     _on_mode_change (_current_mode);
   }
   else {
+
     log_w ("No callback function set for pilot wire mode change");
   }
 }

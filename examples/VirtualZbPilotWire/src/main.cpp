@@ -20,17 +20,20 @@ void setPilotWire(ZigbeePilotWireMode mode) {
     case PILOTWIRE_MODE_OFF:
       Serial.println("Pilot Wire mode: OFF");
       break;
-    case PILOTWIRE_MODE_LOW:
-      Serial.println("Pilot Wire mode: LOW");
+    case PILOTWIRE_MODE_COMFORT:
+      Serial.println("Pilot Wire mode: COMFORT");
       break;
-    case PILOTWIRE_MODE_MEDIUM:
-      Serial.println("Pilot Wire mode: MEDIUM");
+    case PILOTWIRE_MODE_ECO:
+      Serial.println("Pilot Wire mode: ECO");
       break;
-    case PILOTWIRE_MODE_HIGH:
-      Serial.println("Pilot Wire mode: HIGH");
+    case PILOTWIRE_MODE_FROST_PROTECTION:
+      Serial.println("Pilot Wire mode: FROST_PROTECTION");
       break;
-    case PILOTWIRE_MODE_ON:
-      Serial.println("Pilot Wire mode: ON");
+    case PILOTWIRE_MODE_COMFORT_MINUS_1:
+      Serial.println("Pilot Wire mode: COMFORT_MINUS_1");
+      break;
+    case PILOTWIRE_MODE_COMFORT_MINUS_2:
+      Serial.println("Pilot Wire mode: COMFORT_MINUS_2");
       break;
     default: log_e("Unhandled Pilot Wire mode: %d", mode); break;
   }
@@ -46,9 +49,6 @@ void setup() {
 
   //Optional: set Zigbee device name and model
   zbPilotWireControl.setManufacturerAndModel("Espressif", "ZBPilotWireControl");
-
-  // Set the fan mode sequence to LOW_MED_HIGH
-  zbPilotWireControl.setPilotWireModeSequence(PILOTWIRE_MODE_SEQUENCE_LOW_MED_HIGH);
 
   // Set callback function for fan mode change
   zbPilotWireControl.onPilotWireModeChange(setPilotWire);
