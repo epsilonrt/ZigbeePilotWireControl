@@ -146,5 +146,6 @@ void loop() {
     }
   }
   // zbPilot.checkModePtr();
+  // zbPilot.checkPowerStatePtr();
   delay (100);
 }

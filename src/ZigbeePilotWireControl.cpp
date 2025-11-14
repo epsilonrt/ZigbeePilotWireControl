@@ -289,11 +289,12 @@ ZigbeePilotWireControl::checkModePtr() {
   if ( (millis() - last_check) > 2000) {
     last_check = millis();
 
-    esp_zb_zcl_attr_t *attr = esp_zb_zcl_get_attribute (
+    esp_zb_zcl_attr_t *attr = esp_zb_zcl_get_manufacturer_attribute (
                                 _endpoint,
                                 PILOT_WIRE_CLUSTER_ID,
                                 ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-                                PILOT_WIRE_MODE_ATTR_ID
+                                PILOT_WIRE_MODE_ATTR_ID,
+                                MANUFACTURER_CODE
                               );
     ESP_ERROR_CHECK (attr != nullptr ? ESP_OK : ESP_FAIL);
     ESP_ERROR_CHECK (attr->data_p != nullptr ? ESP_OK : ESP_FAIL);
@@ -306,6 +307,35 @@ ZigbeePilotWireControl::checkModePtr() {
     if (reinterpret_cast<uint8_t *> (attr->data_p) != &_current_mode) {
 
       log_e ("Pilot Wire mode pointer mismatch: expected %p, got %p", &_current_mode, reinterpret_cast<uint8_t *> (attr->data_p));
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+void
+ZigbeePilotWireControl::checkPowerStatePtr() {
+  static unsigned long last_check = 0;
+
+  if ( (millis() - last_check) > 2000) {
+    last_check = millis();
+
+    esp_zb_zcl_attr_t *attr = esp_zb_zcl_get_attribute (
+                                _endpoint,
+                                ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
+                                ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID
+                              );
+    ESP_ERROR_CHECK (attr != nullptr ? ESP_OK : ESP_FAIL);
+    ESP_ERROR_CHECK (attr->data_p != nullptr ? ESP_OK : ESP_FAIL);
+
+    if (*reinterpret_cast<bool *> (attr->data_p) != _current_state) {
+
+      log_e ("Power state value mismatch: expected %d, got %d", _current_state, *reinterpret_cast<bool *> (attr->data_p));
+    }
+
+    if (reinterpret_cast<bool *> (attr->data_p) != &_current_state) {
+
+      log_e ("Power state pointer mismatch: expected %p, got %p", &_current_state, reinterpret_cast<bool *> (attr->data_p));
     }
   }
 }

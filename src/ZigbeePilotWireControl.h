@@ -56,6 +56,7 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     bool reportPowerState();
     bool reportPilotWireMode();
     void checkModePtr();
+    void checkPowerStatePtr();
     void printClusterInfo (Print &out = Serial);
   
   protected:
