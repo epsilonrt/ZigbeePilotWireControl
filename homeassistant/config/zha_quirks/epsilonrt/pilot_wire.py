@@ -1,12 +1,16 @@
 """EpsilonRT pilot wire heating module."""
 
+import logging
+logger = logging.getLogger(__name__)
+logger.info("✅ EpsilonRT Pilot Wire quirk loaded for model ERT-MPZ-01")
+
 from zigpy.quirks import CustomCluster
 from zigpy.quirks.v2 import EntityType, QuirkBuilder
 import zigpy.types as t
 from zigpy.zcl.foundation import BaseAttributeDefs, DataTypeId, ZCLAttributeDef
 
 EPSILONRT = "EpsilonRT"
-EPSILONRT_MANUFACTURER_ID = 0x1234  # Remplace par ton ID CSA si connu
+EPSILONRT_MANUFACTURER_ID = 0x1234  # Replace with your CSA ID if known
 EPSILONRT_PILOT_WIRE_CLUSTER_ID = 0xFC10  # 64528
 
 class EpsilonRTPilotWireMode(t.enum8):
@@ -29,7 +33,7 @@ class EpsilonRTPilotWireCluster(CustomCluster):
         pilot_wire_mode = ZCLAttributeDef(
             id=0x0000,
             type=EpsilonRTPilotWireMode,
-            zcl_type=DataTypeId.uint8,
+            zcl_type=DataTypeId.enum8,
             is_manufacturer_specific=True,
         )
 
