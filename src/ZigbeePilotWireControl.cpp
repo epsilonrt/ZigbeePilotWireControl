@@ -47,7 +47,7 @@ ZigbeePilotWireControl::begin() {
                      PILOT_WIRE_CLUSTER_ID,
                      PILOT_WIRE_MODE_ATTR_ID,
                      MANUFACTURER_CODE,
-                     ESP_ZB_ZCL_ATTR_TYPE_8BIT_ENUM,
+                     ESP_ZB_ZCL_ATTR_TYPE_U8,
                      ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING,
                      &_current_mode
                    ));
@@ -81,7 +81,7 @@ ZigbeePilotWireControl::zbAttributeSet (const esp_zb_zcl_set_attr_value_message_
 
   if (message->info.cluster == PILOT_WIRE_CLUSTER_ID) {
 
-    if (message->attribute.id == PILOT_WIRE_MODE_ATTR_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_8BIT_ENUM) {
+    if (message->attribute.id == PILOT_WIRE_MODE_ATTR_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
       uint8_t mode = *reinterpret_cast<uint8_t *> (message->attribute.data.value);
 
       if (mode != _current_mode) {

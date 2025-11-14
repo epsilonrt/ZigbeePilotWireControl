@@ -33,7 +33,7 @@ class EpsilonRTPilotWireCluster(CustomCluster):
         pilot_wire_mode = ZCLAttributeDef(
             id=0x0000,
             type=EpsilonRTPilotWireMode,
-            zcl_type=DataTypeId.enum8,
+            zcl_type=DataTypeId.uint8,
             is_manufacturer_specific=True,
         )
 
