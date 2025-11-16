@@ -10,7 +10,7 @@ import zigpy.types as t
 from zigpy.zcl.foundation import BaseAttributeDefs, DataTypeId, ZCLAttributeDef
 
 EPSILONRT = "EpsilonRT"
-EPSILONRT_MANUFACTURER_ID = 4747  # Replace with your CSA ID if known
+EPSILONRT_MANUFACTURER_ID = 0x1234  # Replace with your CSA ID if known
 EPSILONRT_PILOT_WIRE_CLUSTER_ID = 0xFC00  # 64512
 EPSILONRT_PILOT_WIRE_MODEL = "ERT-MPZ-03"
 

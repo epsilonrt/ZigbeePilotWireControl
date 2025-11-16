@@ -22,7 +22,7 @@
 //
 #define PILOT_WIRE_CLUSTER_ID   0xFC00 // must be upper or equal than 0xFC00 for manufacturer-specific clusters
 #define PILOT_WIRE_MODE_ATTR_ID 0x0000
-#define PILOT_WIRE_MANUF_CODE   4747 // Replace with your registered code if available
+#define PILOT_WIRE_MANUF_CODE   0x1234 // Replace with your registered code if available
 
 // Custom Arduino-friendly enums for pilot wire mode values
 enum ZigbeePilotWireMode : uint8_t {
