@@ -1,5 +1,26 @@
-// SPDX-Identifier: BSD-3-Clause
-// SPDX-FileCopyrightText: 2025 Pascal JEAN aka epsilonrt
+/*
+  SPDX-License-Identifier: BSD-3-Clause
+  SPDX-FileCopyrightText: 2025 Pascal JEAN aka epsilonrt
+
+  This example creates a virtual Zigbee Pilot Wire Control device
+  using the ZigbeePilotWireControl class and a RGB LED to indicate the mode:
+  - Off: black
+  -  Frost Protection: Cyan
+  -  Eco: Green
+  -  Comfort -2: Navy
+  -  Comfort -1: Pink
+  -  Comfort: Red
+  .
+  
+  The RGB LED blinks blue while waiting for the serial port connection,
+  and green while connecting to the Zigbee network.
+  A button is used to cycle through the modes.
+  If the button is held for more than 3 seconds, the Zigbee stack is reset
+  to factory defaults.
+  The current mode is saved in NVS if restore mode is enabled, and restored
+  on startup.
+  Make sure to select "ZCZR coordinator/router" mode in Tools->Zigbee mode
+*/
 
 #ifndef ZIGBEE_MODE_ZCZR
 #error "Zigbee coordinator mode is not selected in Tools->Zigbee mode"
@@ -10,13 +31,11 @@
 
 #include <Zigbee.h>
 #include <ZigbeePilotWireControl.h>
-#include <memory>
 
 #define ZIGBEE_PILOTWIRE_CONTROL_ENDPOINT 1
 
 uint8_t button = BOOT_PIN;
 ZigbeePilotWireControl  zbPilot (ZIGBEE_PILOTWIRE_CONTROL_ENDPOINT);
-const ZigbeePilotWireMode InitialMode = PILOTWIRE_MODE_OFF;
 
 // WS2812B RGB LED that is used on the board to indicate various states
 // Off: black
@@ -87,11 +106,13 @@ void setup() {
 
   log_i ("Zigbee Virtual Pilot Wire Control starting...");
 
-  zbPilot.begin();
-  zbPilot.printClusterInfo();
-
   // Set callback function for pilot wire mode change and power state change
   zbPilot.onPilotWireModeChange (setPilotWire);
+
+  zbPilot.begin ();
+  zbPilot.enableRestoreMode (true); // restore mode from NVS
+
+  // zbPilot.printClusterInfo();
 
   // Add endpoint to Zigbee Core
   log_i ("Adding ZigbeePilotWireControl endpoint to Zigbee Core");
@@ -109,7 +130,14 @@ void setup() {
     ledBlink (CRGB::Green, 100, 100);
   }
 
-  // zbPilot.setPilotWireMode (InitialMode);
+  if (zbPilot.reportAttributes()) {
+
+    log_i ("Pilot Wire attributes reported");
+  }
+  else {
+
+    log_w ("Failed to report Pilot Wire attributes");
+  }
 }
 
 void loop() {

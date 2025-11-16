@@ -1,21 +1,24 @@
-// SPDX-Identifier: BSD-3-Clause
-// SPDX-FileCopyrightText: 2025 Pascal JEAN aka epsilonrt
+/// @file ZigbeePilotWireControl.cpp
+/// SPDX-License-Identifier: BSD-3-Clause
+/// SPDX-FileCopyrightText: 2025 Pascal JEAN aka epsilonrt
 
 #include "ZigbeePilotWireControl.h"
 
-
 // ----------------------------------------------------------------------------
-ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint, bool enableMetering, bool enableTemperature) :
+ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint) :
   ZigbeeEP (endpoint), _current_mode (PILOTWIRE_MODE_OFF),
   _state_on_mode (PILOTWIRE_MODE_COMFORT), _on_mode_change (nullptr),
-  _current_state (false) {
+  _current_state (false), _current_state_changed (true), _restore_mode (false) {
 
   _device_id = ESP_ZB_HA_SMART_PLUG_DEVICE_ID;
 }
 
 // ----------------------------------------------------------------------------
 void
-ZigbeePilotWireControl::begin() {
+ZigbeePilotWireControl::begin (bool enableMetering, bool enableTemperature) {
+  // Init NVS
+  _prefs.begin ("PilotWire", false); // namespace "PilotWire"
+  _restore_mode = _prefs.getBool ("restore");
 
   // Create cluster list
   _cluster_list = esp_zb_zcl_cluster_list_create();
@@ -66,12 +69,24 @@ ZigbeePilotWireControl::begin() {
     .app_device_version = 0
   };
 
+  if (_restore_mode) {
+    _current_mode = _prefs.getInt ("mode", PILOTWIRE_MODE_OFF);
+    log_i ("Restored mode from NVS: %d", _current_mode);
+  }
+  else {
+    log_i ("Starting with default mode: %d", _current_mode);
+  }
+
   if (setManufacturerAndModel (PILOT_WIRE_MANUF_NAME, PILOT_WIRE_MODEL_NAME)) {
     log_i ("Manufacturer and Model set for Pilot Wire Control");
   }
   else {
     log_w ("Failed to set Manufacturer and Model for Pilot Wire Control");
   }
+
+  // Force synchronization with Zigbee attributes
+  setPilotWireMode (static_cast<ZigbeePilotWireMode> (_current_mode));
+  log_i ("Zigbee Pilot Wire Control endpoint initialized on EP %d", _endpoint);
 }
 
 // ----------------------------------------------------------------------------
@@ -85,25 +100,25 @@ ZigbeePilotWireControl::zbAttributeSet (const esp_zb_zcl_set_attr_value_message_
       uint8_t mode = *reinterpret_cast<uint8_t *> (message->attribute.data.value);
 
       if (mode != _current_mode) {
-        bool is_state_updating = false;
         if (mode == PILOTWIRE_MODE_OFF) {
 
           // Save current mode when turning off
           _state_on_mode = _current_mode;
           _current_state = false;
-          is_state_updating = true;
+          _current_state_changed = true;
         }
         else if (_current_mode == PILOTWIRE_MODE_OFF) {
 
           _current_state = true;
-          is_state_updating = true;
+          _current_state_changed = true;
         }
 
         _current_mode = mode;
         pilotWireModeChanged();
-        if (is_state_updating) {
+        if (_current_state_changed) {
 
           // _current_state changed, report attribute
+          _current_state_changed = false;
           log_v ("Updating On/Off attribute to %d", _current_state);
           esp_zb_zcl_status_t ret;
           esp_zb_lock_acquire (portMAX_DELAY);
@@ -180,10 +195,15 @@ ZigbeePilotWireControl::zbAttributeSet (const esp_zb_zcl_set_attr_value_message_
 }
 
 // ----------------------------------------------------------------------------
+// Called whenever Pilot Wire mode changes
 void
 ZigbeePilotWireControl::pilotWireModeChanged() {
-
   log_i ("Pilot Wire mode changed to %d", _current_mode);
+
+  // Save current mode persistently in NVS
+  _prefs.putInt ("mode", _current_mode);
+  _current_state = (_current_mode != PILOTWIRE_MODE_OFF);
+
   if (_on_mode_change) {
 
     _on_mode_change (static_cast<ZigbeePilotWireMode> (_current_mode));
@@ -196,64 +216,74 @@ ZigbeePilotWireControl::pilotWireModeChanged() {
 
 // ----------------------------------------------------------------------------
 bool
+ZigbeePilotWireControl::reportAttributes() {
+  esp_zb_zcl_status_t ret;
+
+  pilotWireModeChanged();
+
+  // Report Pilot Wire mode attribute
+  log_v ("Reporting Pilot Wire mode attribute: %d", _current_mode);
+  esp_zb_lock_acquire (portMAX_DELAY);
+  ret = esp_zb_zcl_set_manufacturer_attribute_val (
+          _endpoint,
+          PILOT_WIRE_CLUSTER_ID,
+          ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+          PILOT_WIRE_MANUF_CODE,
+          PILOT_WIRE_MODE_ATTR_ID,
+          &_current_mode,
+          false
+        );
+  esp_zb_lock_release();
+  if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
+    log_e ("Failed to update Pilot Wire mode attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
+    return false;
+  }
+
+  // Report On/Off attribute
+  if (_current_state_changed) {
+
+    // _current_state changed, report attribute
+    _current_state_changed = false;
+    log_v ("Updating On/Off attribute to %d", _current_state);
+    esp_zb_lock_acquire (portMAX_DELAY);
+    ret = esp_zb_zcl_set_attribute_val (
+            _endpoint,
+            ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
+            ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+            ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+            &_current_state,
+            false
+          );
+    esp_zb_lock_release();
+    if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
+      log_e ("Failed to update On/Off attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
+      return false;
+    }
+  }
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+bool
 ZigbeePilotWireControl::setPilotWireMode (ZigbeePilotWireMode mode) {
 
   if (mode != _current_mode) {
-    bool is_state_updating = false;
-    esp_zb_zcl_status_t ret;
 
     if (mode == PILOTWIRE_MODE_OFF) {
 
       // Save current mode when turning off
       _state_on_mode = _current_mode;
       _current_state = false;
-      is_state_updating = true;
+      _current_state_changed = true;
     }
     else if (_current_mode == PILOTWIRE_MODE_OFF) {
 
       _current_state = true;
-      is_state_updating = true;
+      _current_state_changed = true;
     }
 
     _current_mode = mode;
-    pilotWireModeChanged();
-
-    log_v ("Updating Pilot Wire mode attribute to %d", _current_mode);
-    esp_zb_lock_acquire (portMAX_DELAY);
-    ret = esp_zb_zcl_set_manufacturer_attribute_val (
-            _endpoint,
-            PILOT_WIRE_CLUSTER_ID,
-            ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-            PILOT_WIRE_MANUF_CODE,
-            PILOT_WIRE_MODE_ATTR_ID,
-            &_current_mode,
-            false
-          );
-    esp_zb_lock_release();
-    if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
-      log_e ("Failed to update Pilot Wire mode attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
-      return false;
-    }
-
-    if (is_state_updating) {
-
-      // _current_state changed, report attribute
-      log_v ("Updating On/Off attribute to %d", _current_state);
-      esp_zb_lock_acquire (portMAX_DELAY);
-      ret = esp_zb_zcl_set_attribute_val (
-              _endpoint,
-              ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
-              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-              ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
-              &_current_state,
-              false
-            );
-      esp_zb_lock_release();
-      if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
-        log_e ("Failed to update On/Off attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
-        return false;
-      }
-    }
+    return reportAttributes();
   }
   return true;
 }
