@@ -10,7 +10,7 @@ import zigpy.types as t
 from zigpy.zcl.foundation import BaseAttributeDefs, DataTypeId, ZCLAttributeDef
 
 EPSILONRT = "EpsilonRT"
-EPSILONRT_MANUFACTURER_ID = 0x1234  # Replace with your CSA ID if known
+EPSILONRT_MANUFACTURER_ID = 0x1234  # Used by Home Assistant to control custom cluster, can be replaced with official code if available but should not work, so do not touch!!
 EPSILONRT_PILOT_WIRE_CLUSTER_ID = 0xFC00  # 64512
 EPSILONRT_PILOT_WIRE_MODEL = "ERT-MPZ-03"
 
@@ -38,7 +38,7 @@ class EpsilonRTPilotWireCluster(CustomCluster):
             zcl_type=DataTypeId.uint8,
             is_manufacturer_specific=True,
         )
-    
+
 epsilonrt = (
     QuirkBuilder(EPSILONRT, EPSILONRT_PILOT_WIRE_MODEL)
     .replaces(EpsilonRTPilotWireCluster)
