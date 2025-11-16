@@ -90,13 +90,6 @@ void setup() {
   zbPilot.begin();
   zbPilot.printClusterInfo();
 
-  // Set manufacturer and model name
-  // Home Assistant Zigbee integration uses these values to auto-detect the device type
-  // and assign the correct icon and features.
-  // If you change these values, you may need to modify the integration settings accordingly
-  // in homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py
-  zbPilot.setManufacturerAndModel ("EpsilonRT", "ERT-MPZ-01");
-
   // Set callback function for pilot wire mode change and power state change
   zbPilot.onPilotWireModeChange (setPilotWire);
 
@@ -113,7 +106,7 @@ void setup() {
   log_i ("Connecting to network");
   while (!Zigbee.connected()) {
 
-    ledBlink (CRGB::Yellow, 100, 100);
+    ledBlink (CRGB::Green, 100, 100);
   }
 
   // zbPilot.setPilotWireMode (InitialMode);
@@ -145,7 +138,5 @@ void loop() {
       zbPilot.setPilotWireMode (static_cast<ZigbeePilotWireMode> (mode));
     }
   }
-  // zbPilot.checkModePtr();
-  // zbPilot.checkPowerStatePtr();
   delay (100);
 }

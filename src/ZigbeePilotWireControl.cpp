@@ -14,7 +14,7 @@ ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint, bool enableMet
 }
 
 // ----------------------------------------------------------------------------
-void 
+void
 ZigbeePilotWireControl::begin() {
 
   // Create cluster list
@@ -46,18 +46,11 @@ ZigbeePilotWireControl::begin() {
                      pilot_wire_cluster,
                      PILOT_WIRE_CLUSTER_ID,
                      PILOT_WIRE_MODE_ATTR_ID,
-                     MANUFACTURER_CODE,
+                     PILOT_WIRE_MANUF_CODE,
                      ESP_ZB_ZCL_ATTR_TYPE_U8,
                      ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING,
                      &_current_mode
                    ));
-  // ESP_ERROR_CHECK (esp_zb_custom_cluster_add_custom_attr (
-  //                    pilot_wire_cluster,
-  //                    PILOT_WIRE_MODE_ATTR_ID,
-  //                    ESP_ZB_ZCL_ATTR_TYPE_U8,
-  //                    ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING,
-  //                    &_current_mode
-  //                  ));
 
   // Add custom Pilot Wire cluster to cluster list
   ESP_ERROR_CHECK (esp_zb_cluster_list_add_custom_cluster (_cluster_list,
@@ -72,6 +65,13 @@ ZigbeePilotWireControl::begin() {
     .app_device_id = ESP_ZB_HA_SMART_PLUG_DEVICE_ID,
     .app_device_version = 0
   };
+
+  if (setManufacturerAndModel (PILOT_WIRE_MANUF_NAME, PILOT_WIRE_MODEL_NAME)) {
+    log_i ("Manufacturer and Model set for Pilot Wire Control");
+  }
+  else {
+    log_w ("Failed to set Manufacturer and Model for Pilot Wire Control");
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -103,6 +103,7 @@ ZigbeePilotWireControl::zbAttributeSet (const esp_zb_zcl_set_attr_value_message_
         pilotWireModeChanged();
         if (is_state_updating) {
 
+          // _current_state changed, report attribute
           log_v ("Updating On/Off attribute to %d", _current_state);
           esp_zb_zcl_status_t ret;
           esp_zb_lock_acquire (portMAX_DELAY);
@@ -148,16 +149,15 @@ ZigbeePilotWireControl::zbAttributeSet (const esp_zb_zcl_set_attr_value_message_
         }
         pilotWireModeChanged();
 
+        // _current_mode changed, report attribute
         log_v ("Updating Pilot Wire mode attribute to %d", _current_mode);
-        // TODO: report mode attribute change
-        // reportPilotWireMode();
         esp_zb_zcl_status_t ret;
         esp_zb_lock_acquire (portMAX_DELAY);
         ret = esp_zb_zcl_set_manufacturer_attribute_val (
                 _endpoint,
                 PILOT_WIRE_CLUSTER_ID,
                 ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-                MANUFACTURER_CODE,
+                PILOT_WIRE_MANUF_CODE,
                 PILOT_WIRE_MODE_ATTR_ID,
                 &_current_mode,
                 false
@@ -197,147 +197,65 @@ ZigbeePilotWireControl::pilotWireModeChanged() {
 // ----------------------------------------------------------------------------
 bool
 ZigbeePilotWireControl::setPilotWireMode (ZigbeePilotWireMode mode) {
-  esp_zb_zcl_status_t ret_mode = ESP_ZB_ZCL_STATUS_SUCCESS;
-  esp_zb_zcl_status_t ret_state = ESP_ZB_ZCL_STATUS_SUCCESS;
 
-  _state_on_mode = _current_mode;
-  _current_mode = mode;
-  _current_state = (_current_mode != PILOTWIRE_MODE_OFF);
+  if (mode != _current_mode) {
+    bool is_state_updating = false;
+    esp_zb_zcl_status_t ret;
 
-  pilotWireModeChanged();
-  // esp_zb_lock_acquire (portMAX_DELAY);
-  // ret_state = esp_zb_zcl_set_attribute_val (
-  //               _endpoint, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID, &_current_state, false
-  //             );
-  // ret_mode = esp_zb_zcl_set_manufacturer_attribute_val (
-  //              _endpoint,
-  //              PILOT_WIRE_CLUSTER_ID,
-  //              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-  //              MANUFACTURER_CODE,
-  //              PILOT_WIRE_MODE_ATTR_ID,
-  //              &_current_mode,
-  //              false
-  //            );
-  // esp_zb_lock_release();
+    if (mode == PILOTWIRE_MODE_OFF) {
 
-  if (ret_mode != ESP_ZB_ZCL_STATUS_SUCCESS) {
+      // Save current mode when turning off
+      _state_on_mode = _current_mode;
+      _current_state = false;
+      is_state_updating = true;
+    }
+    else if (_current_mode == PILOTWIRE_MODE_OFF) {
 
-    log_e ("Failed to set Pilot Wire mode: 0x%x: %s", ret_mode, esp_zb_zcl_status_to_name (ret_mode));
+      _current_state = true;
+      is_state_updating = true;
+    }
+
+    _current_mode = mode;
+    pilotWireModeChanged();
+
+    log_v ("Updating Pilot Wire mode attribute to %d", _current_mode);
+    esp_zb_lock_acquire (portMAX_DELAY);
+    ret = esp_zb_zcl_set_manufacturer_attribute_val (
+            _endpoint,
+            PILOT_WIRE_CLUSTER_ID,
+            ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+            PILOT_WIRE_MANUF_CODE,
+            PILOT_WIRE_MODE_ATTR_ID,
+            &_current_mode,
+            false
+          );
+    esp_zb_lock_release();
+    if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
+      log_e ("Failed to update Pilot Wire mode attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
+      return false;
+    }
+
+    if (is_state_updating) {
+
+      // _current_state changed, report attribute
+      log_v ("Updating On/Off attribute to %d", _current_state);
+      esp_zb_lock_acquire (portMAX_DELAY);
+      ret = esp_zb_zcl_set_attribute_val (
+              _endpoint,
+              ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
+              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+              ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+              &_current_state,
+              false
+            );
+      esp_zb_lock_release();
+      if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
+        log_e ("Failed to update On/Off attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
+        return false;
+      }
+    }
   }
-  if (ret_state != ESP_ZB_ZCL_STATUS_SUCCESS) {
-
-    log_e ("Failed to set power state: 0x%x: %s", ret_state, esp_zb_zcl_status_to_name (ret_state));
-  }
-
-  return (ret_mode == ESP_ZB_ZCL_STATUS_SUCCESS && ret_state == ESP_ZB_ZCL_STATUS_SUCCESS);
-}
-
-// ----------------------------------------------------------------------------
-bool
-ZigbeePilotWireControl::reportPowerState() {
-  esp_err_t ret = ESP_OK;
-  esp_zb_zcl_report_attr_cmd_t report_attr_cmd;
-
-  memset (&report_attr_cmd, 0, sizeof (report_attr_cmd));
-  report_attr_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_DST_ADDR_ENDP_NOT_PRESENT;
-  report_attr_cmd.attributeID = ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID;
-  report_attr_cmd.direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_CLI;
-  report_attr_cmd.clusterID = ESP_ZB_ZCL_CLUSTER_ID_ON_OFF;
-  report_attr_cmd.zcl_basic_cmd.src_endpoint = _endpoint;
-  report_attr_cmd.manuf_code = ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC;
-
-  esp_zb_lock_acquire (portMAX_DELAY);
-  ret = esp_zb_zcl_report_attr_cmd_req (&report_attr_cmd);
-  esp_zb_lock_release();
-  if (ret != ESP_OK) {
-    log_e ("Failed to report power state: 0x%x: %s", ret, esp_err_to_name (ret));
-    return false;
-  }
-  log_v ("Power state reported");
   return true;
-}
-
-// ----------------------------------------------------------------------------
-bool
-ZigbeePilotWireControl::reportPilotWireMode() {
-  esp_err_t ret = ESP_OK;
-  esp_zb_zcl_report_attr_cmd_t report_attr_cmd;
-  memset (&report_attr_cmd, 0, sizeof (report_attr_cmd));
-  report_attr_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_DST_ADDR_ENDP_NOT_PRESENT;
-  report_attr_cmd.attributeID = PILOT_WIRE_MODE_ATTR_ID;
-  report_attr_cmd.direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_CLI;
-  report_attr_cmd.clusterID = PILOT_WIRE_CLUSTER_ID;
-  report_attr_cmd.zcl_basic_cmd.src_endpoint = _endpoint;
-  report_attr_cmd.manuf_code = MANUFACTURER_CODE;
-
-  esp_zb_lock_acquire (portMAX_DELAY);
-  ret = esp_zb_zcl_report_attr_cmd_req (&report_attr_cmd);
-  esp_zb_lock_release();
-  if (ret != ESP_OK) {
-    log_e ("Failed to report Pilot Wire mode: 0x%x: %s", ret, esp_err_to_name (ret));
-    return false;
-  }
-  log_v ("Pilot Wire mode reported");
-  return true;
-}
-
-// ----------------------------------------------------------------------------
-void
-ZigbeePilotWireControl::checkModePtr() {
-  static unsigned long last_check = 0;
-
-  if ( (millis() - last_check) > 2000) {
-    last_check = millis();
-
-    esp_zb_zcl_attr_t *attr = esp_zb_zcl_get_manufacturer_attribute (
-                                _endpoint,
-                                PILOT_WIRE_CLUSTER_ID,
-                                ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-                                PILOT_WIRE_MODE_ATTR_ID,
-                                MANUFACTURER_CODE
-                              );
-    ESP_ERROR_CHECK (attr != nullptr ? ESP_OK : ESP_FAIL);
-    ESP_ERROR_CHECK (attr->data_p != nullptr ? ESP_OK : ESP_FAIL);
-
-    if (*reinterpret_cast<uint8_t *> (attr->data_p) != _current_mode) {
-
-      log_e ("Pilot Wire mode value mismatch: expected %d, got %d", _current_mode, *reinterpret_cast<uint8_t *> (attr->data_p));
-    }
-
-    if (reinterpret_cast<uint8_t *> (attr->data_p) != &_current_mode) {
-
-      log_e ("Pilot Wire mode pointer mismatch: expected %p, got %p", &_current_mode, reinterpret_cast<uint8_t *> (attr->data_p));
-    }
-  }
-}
-
-// ----------------------------------------------------------------------------
-void
-ZigbeePilotWireControl::checkPowerStatePtr() {
-  static unsigned long last_check = 0;
-
-  if ( (millis() - last_check) > 2000) {
-    last_check = millis();
-
-    esp_zb_zcl_attr_t *attr = esp_zb_zcl_get_attribute (
-                                _endpoint,
-                                ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
-                                ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-                                ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID
-                              );
-    ESP_ERROR_CHECK (attr != nullptr ? ESP_OK : ESP_FAIL);
-    ESP_ERROR_CHECK (attr->data_p != nullptr ? ESP_OK : ESP_FAIL);
-
-    if (*reinterpret_cast<bool *> (attr->data_p) != _current_state) {
-
-      log_e ("Power state value mismatch: expected %d, got %d", _current_state, *reinterpret_cast<bool *> (attr->data_p));
-    }
-
-    if (reinterpret_cast<bool *> (attr->data_p) != &_current_state) {
-
-      log_e ("Power state pointer mismatch: expected %p, got %p", &_current_state, reinterpret_cast<bool *> (attr->data_p));
-    }
-  }
 }
 
 // ----------------------------------------------------------------------------
