@@ -34,5 +34,8 @@
       "name": "Zigbee",
       "version": "^3.3.0"
     }
+  ],
+  "examples": [
+    "examples/*/*.ino"
   ]
 }

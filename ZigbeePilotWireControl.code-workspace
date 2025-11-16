@@ -1,11 +1,17 @@
 {
 	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "examples/VirtualZbPilotWire"
-		}
-	],
+    {
+      "path": "."
+    },
+    {
+      "path": "examples/VirtualPilotTestWithLog"
+    },
+    {
+      "path": "examples/VirtualPilotRgbLed"
+    },
+    {
+      "path": "examples/VirtualPilotSerial"
+    }
+  ],
   "settings": {}
 }

@@ -19,7 +19,7 @@
    This is used by Home Assistant Zigbee integration for device identification.
    If you change this value, ensure to update the corresponding quirk in Home Assistant.
    The quirk is located at:
-   homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py
+   extras/homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py
 */
 #ifndef PILOT_WIRE_MANUF_NAME
 #define PILOT_WIRE_MANUF_NAME   "EpsilonRT"
@@ -30,7 +30,7 @@
    This is used by Home Assistant Zigbee integration for device identification.
    If you change this value, ensure to update the corresponding quirk in Home Assistant.
    The quirk is located at:
-   homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py
+   extras/homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py
 */
 #ifndef PILOT_WIRE_MODEL_NAME
 #define PILOT_WIRE_MODEL_NAME   "ERT-MPZ-03"
@@ -42,7 +42,7 @@
    Can be replaced with official code if available but should not work, so do not touch!!
    If you change this value, ensure to update the corresponding quirk in Home Assistant.
    The quirk is located at:
-   homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py
+   extras/homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py
 */
 #ifndef PILOT_WIRE_MANUF_CODE
 #define PILOT_WIRE_MANUF_CODE   0x1234
