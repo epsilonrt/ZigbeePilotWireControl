@@ -18,6 +18,11 @@
   to factory defaults.
   The current mode is saved in NVS if restore mode is enabled, and restored
   on startup.
+
+  This example also simulates a temperature sensor using the thermometer cluster.
+  The temperature value is updated every minute, cycling between 18.0 and
+  24.0 degrees Celsius in steps of 0.1 degree.
+
   Make sure to select "ZCZR coordinator/router" mode in Tools->Zigbee mode
 */
 #include <Arduino.h>
@@ -33,6 +38,17 @@
 const uint16_t ZbeeEndPoint = 1;
 const uint8_t button = BOOT_PIN;
 
+// Temperature values for simulate thermometer cluster
+const float TempMin = 18.0;
+const float TempMax = 24.0;
+const float TempStep = 0.1;
+const float TempDefault = (TempMin + TempMax) / 2.0;
+const unsigned UpdateIntervalMs = 60000; // 60 seconds
+
+float temperature = TempDefault;
+float tempStep = TempStep;
+unsigned long lastTempUpdate = 0;
+
 // Create ZigbeePilotWireControl instance
 ZigbeePilotWireControl  zbPilot (ZbeeEndPoint);
 
@@ -46,7 +62,7 @@ ZigbeePilotWireControl  zbPilot (ZbeeEndPoint);
 CRGB led;
 
 // Function to set the RGB LED color
-void 
+void
 setLed (CRGB color) {
 
   led = color;
@@ -100,7 +116,7 @@ void setup() {
   // Set callback function for pilot wire mode change and power state change
   zbPilot.onPilotWireModeChange (setPilotWire);
 
-  zbPilot.begin ();
+  zbPilot.begin (false, true); // no metering, temperature measurement enabled
   zbPilot.enableRestoreMode (true); // restore mode from NVS
 
   // zbPilot.printClusterInfo();
@@ -121,6 +137,32 @@ void setup() {
     ledBlink (CRGB::Green, 100, 100);
   }
 
+  // Set the initial temperature value
+  if (zbPilot.setTemperature (temperature)) {
+
+    log_i ("Pilot Wire temperature set to %.1f C", temperature);
+    lastTempUpdate = millis();
+  }
+  else {
+
+    log_w ("Failed to set Pilot Wire temperature");
+  }
+
+  // Configure temperature reporting: min 30s, max 300s, delta 0.1 C
+  // min: 30 seconds, never less than 30s to avoid flooding the network
+  // max: 300 seconds, report at least every 5 minutes
+  // delta: 0.1 C, report if temperature changes by 0.1 degree (with minimal interval of 30s)
+  // the default reporting configuration is 30s, 900s, 0.5 C
+  if (zbPilot.setTemperatureReporting (30, 300, 0.1)) { // min 30s, max 300s, delta 0.1 C
+
+    log_i ("Pilot Wire temperature reporting configured");
+  }
+  else {
+
+    log_w ("Failed to configure Pilot Wire temperature reporting");
+  }
+
+  // Report initial attributes
   if (zbPilot.reportAttributes()) {
 
     log_i ("Pilot Wire attributes reported");
@@ -155,6 +197,25 @@ void loop() {
 
       mode = (mode + 1) % PILOTWIRE_MODE_COUNT;
       zbPilot.setPilotWireMode (static_cast<ZigbeePilotWireMode> (mode));
+    }
+  }
+  
+  // Update temperature every UpdateIntervalMs milliseconds
+  if ( (millis() - lastTempUpdate) >= UpdateIntervalMs) {
+
+    temperature += tempStep;
+    if (temperature >= TempMax || temperature <= TempMin) {
+      // Reverse direction
+      tempStep = -tempStep;
+    }
+
+    if (zbPilot.setTemperature (temperature)) {
+      log_i ("Pilot Wire temperature set to %.1f C", temperature);
+      lastTempUpdate = millis();
+      zbPilot.reportTemperature(); // Force report of temperature
+    }
+    else {
+      log_w ("Failed to set Pilot Wire temperature");
     }
   }
   delay (100);

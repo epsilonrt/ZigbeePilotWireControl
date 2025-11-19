@@ -73,21 +73,21 @@ enum ZigbeePilotWireMode : uint8_t {
 };
 
 /**
- * @brief Minimum and maximum values for ZigbeePilotWireMode enum.
- * These constants can be used for validation or iteration over the enum values.
- */
+   @brief Minimum and maximum values for ZigbeePilotWireMode enum.
+   These constants can be used for validation or iteration over the enum values.
+*/
 const ZigbeePilotWireMode PILOTWIRE_MODE_MIN = PILOTWIRE_MODE_OFF;
 
 /**
- * @brief Maximum value for ZigbeePilotWireMode enum.
- * This constant can be used for validation or iteration over the enum values.
- */
+   @brief Maximum value for ZigbeePilotWireMode enum.
+   This constant can be used for validation or iteration over the enum values.
+*/
 const ZigbeePilotWireMode PILOTWIRE_MODE_MAX = PILOTWIRE_MODE_COMFORT_MINUS_2;
 
 /**
- * @brief Total number of modes defined in ZigbeePilotWireMode enum.
- * This constant can be used for validation or iteration over the enum values.
- */
+   @brief Total number of modes defined in ZigbeePilotWireMode enum.
+   This constant can be used for validation or iteration over the enum values.
+*/
 const uint8_t PILOTWIRE_MODE_COUNT = (PILOTWIRE_MODE_COMFORT_MINUS_2 - PILOTWIRE_MODE_OFF + 1);
 
 /**
@@ -159,11 +159,58 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     bool setPilotWireMode (ZigbeePilotWireMode mode);
 
     /**
-       @brief Report the current Pilot Wire attributes to the Zigbee network.
-       This method updates the Pilot Wire mode and On/Off attributes in the Zigbee stack.
+       @brief Report the current attributes to the Zigbee network.
+       This method updates the Pilot Wire mode, On/Off and temperature (if enabled) attributes in the Zigbee stack.
        @return true if the attributes were reported successfully, false otherwise.
     */
     bool reportAttributes();
+
+    /**
+       @brief Set the temperature value for the temperature measurement cluster.
+       @param temperature The temperature value in degrees Celsius, the resolution is 0.01 degree.
+       @return true if the temperature was set successfully, false otherwise.
+    */
+    bool setTemperature (float value);
+
+    /**
+       @brief Get the current temperature value.
+       @return The current temperature value in degrees Celsius.
+    */
+    float temperature() const {
+      return _temperature_value;
+    }
+
+    /**
+       @brief Set the minimum and maximum temperature values for the temperature measurement cluster.
+       @param min The minimum temperature value in degrees Celsius, the resolution is 0.01 degree.
+       @param max The maximum temperature value in degrees Celsius, the resolution is 0.01 degree.
+       @return true if the min and max values were set successfully, false otherwise.
+    */
+    bool setMinMaxTemperature (float min, float max);
+
+    /**
+       @brief Set the tolerance value for the temperature measurement cluster.
+       @param tolerance The tolerance value in degrees Celsius, the resolution is 0.01 degree.
+       @return true if the tolerance value was set successfully, false otherwise.
+    */
+    bool setTemperatureTolerance (float tolerance);
+
+    /**
+       @brief Set the reporting interval for the temperature measurement cluster.
+       @param min_interval The minimum reporting interval in seconds. This is the shortest time between reports even if the temperature changes.
+       @param max_interval The maximum reporting interval in seconds. This is the longest time between reports even if the temperature does not change.
+       @param delta The temperature change delta in degrees Celsius, the resolution is 0.01 degree. This is the minimum change in temperature that triggers a report.
+       @return true if the reporting interval was set successfully, false otherwise.
+    */
+    bool setTemperatureReporting (uint16_t min_interval, uint16_t max_interval, float delta);
+
+    /**
+       @brief Report the current temperature value to the Zigbee network.
+       The reporting is configured via setTemperatureReporting(), so this method
+       can be used to force a report outside of the configured intervals.
+       @return true if the temperature was reported successfully, false otherwise.
+    */
+    bool reportTemperature();
 
     /**
        @brief Enable or disable restore mode.
@@ -209,6 +256,10 @@ class ZigbeePilotWireControl : public ZigbeeEP {
 
   protected:
     void zbAttributeSet (const esp_zb_zcl_set_attr_value_message_t *message) override;
+    bool setReporting (uint16_t cluster_id, uint16_t attr_id,
+                       uint16_t min_interval, uint16_t max_interval, float delta,
+                       uint16_t manuf_code = ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC);
+    bool reportAttribute (uint16_t cluster_id, uint16_t attr_id, uint16_t manuf_code = ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC);
 
   private:
     void pilotWireModeChanged();
@@ -221,5 +272,11 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     bool _current_state_changed;
     bool _restore_mode;
     Preferences _prefs;
+
+    bool _temperature_enabled;
+    float _temperature_value;
+    float _temperature_min;
+    float _temperature_max;
+    float _temperature_tolerance;
 };
 
