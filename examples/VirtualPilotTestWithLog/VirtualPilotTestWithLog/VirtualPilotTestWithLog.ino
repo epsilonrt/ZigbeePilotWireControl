@@ -43,6 +43,12 @@ const float TempMin = 18.0;
 const float TempMax = 24.0;
 const float TempStep = 0.1;
 const float TempDefault = (TempMin + TempMax) / 2.0;
+
+const int32_t PowerMin = 1000; // 1kW
+const int32_t PowerMax = 2000; // 5kW
+const int32_t PowerStep = 100; // 0.1kW
+const int32_t PowerDefault = (PowerMin + PowerMax) / 2;
+
 const unsigned UpdateIntervalMs = 60000; // 60 seconds
 
 float temperature = TempDefault;
@@ -107,6 +113,7 @@ void setup() {
   while (!Serial) {
     ledBlink (CRGB::Blue, 50, 50);
   }
+  delay (2000);
 
   // Init button for factory reset
   pinMode (button, INPUT_PULLUP);
@@ -116,7 +123,7 @@ void setup() {
   // Set callback function for pilot wire mode change and power state change
   zbPilot.onPilotWireModeChange (setPilotWire);
 
-  zbPilot.begin (false, true); // no metering, temperature measurement enabled
+  zbPilot.begin (true, true); // temperature measurement enabled, metering enabled
   zbPilot.enableRestoreMode (true); // restore mode from NVS
 
   // zbPilot.printClusterInfo();
@@ -147,6 +154,15 @@ void setup() {
 
     log_w ("Failed to set Pilot Wire temperature");
   }
+
+  // if (zbPilot.setInstantaneousDemand (PowerDefault)) {
+
+  //   log_i ("Pilot Wire instantaneous demand set to %d W", PowerDefault);
+  // }
+  // else {
+
+  //   log_w ("Failed to set Pilot Wire instantaneous demand");
+  // }
 
   // Configure temperature reporting: min 30s, max 300s, delta 0.1 C
   // min: 30 seconds, never less than 30s to avoid flooding the network

@@ -121,14 +121,16 @@ class ZigbeePilotWireControl : public ZigbeeEP {
       _on_mode_change = callback;
     }
 
+
     /**
-       @brief Initialize the Zigbee Pilot Wire Control endpoint.
-       This method sets up the custom Pilot Wire cluster and its attributes,
-       and adds the endpoint to the Zigbee stack.
-       @param enableMetering If true, adds a metering cluster to the endpoint.
+       @brief Initialize the ZigbeePilotWireControl endpoint and create clusters.
+       This method sets up the necessary clusters for Pilot Wire Control,
+       including On/Off, Pilot Wire mode, Temperature Measurement (optional),
+       and Metering (optional), and adds the endpoint to the Zigbee stack.
        @param enableTemperature If true, adds a temperature measurement cluster to the endpoint.
+       @param enableMetering If true, adds a metering cluster to the endpoint.
     */
-    void begin (bool enableMetering = false, bool enableTemperature = false);
+    void begin (bool enableTemperature = false, bool enableMetering = false);
 
     /**
        @brief Get the current Pilot Wire mode.
@@ -213,6 +215,81 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     bool reportTemperature();
 
     /**
+       @brief Set the summation delivered attribute in the metering cluster.
+       @param summation_wh The total energy delivered in watt-hours (Wh). uint48_t value.
+       @return true if the attribute was set successfully, false otherwise.
+    */
+    bool setSummationDelivered (uint64_t summation_wh);
+
+    /**
+       @brief Get the current summation delivered value.
+       @return The current summation delivered value in watt-hours (Wh).
+    */
+    uint64_t summationDelivered() const;
+
+    /**
+       @brief Set the instantaneous demand attribute in the metering cluster.
+       @param demand_w The instantaneous power demand in watts (W). uint24_t value representing -8388608 to 8388607 W.
+       @return true if the attribute was set successfully, false otherwise.
+    */
+    bool setInstantaneousDemand (int32_t demand_w);
+
+    /**
+       @brief Get the current instantaneous demand value.
+       @return The current instantaneous demand value in watts (W).
+    */
+    int32_t instantaneousDemand() const;
+
+    /**
+       @brief Set the scaling multiplier attribute in the metering cluster.
+       @param multiplier The scaling multiplier (U24 in ZCL).
+       @return true if the attribute was set successfully, false otherwise.
+    */
+    bool setMultiplier (uint32_t multiplier);
+
+    /**
+      @brief Get the current scaling multiplier value.
+      @return The current scaling multiplier value.
+    */
+    uint32_t multiplier() const;
+
+    /**
+       @brief Set the scaling divisor attribute in the metering cluster.
+       @param divisor The scaling divisor (U24 in ZCL).
+       @return true if the attribute was set successfully, false otherwise.
+    */
+    bool setDivisor (uint32_t divisor);
+
+    /**
+       @brief Get the current scaling divisor value.
+       @return The current scaling divisor value.
+    */
+    uint32_t divisor() const;
+
+    /**
+       @brief Set the metering status attribute in the metering cluster.
+       @param status The metering status (bitmap U8 in ZCL).
+        bit 6 Service Disconnect Open: Set to true when the service have been disconnected to this premises.
+        bit 5 Leak Detect: Set to true when a leak has been detected.
+        bit 4 Power Quality: Set to true if a power quality event has been detected such as a low voltage, high voltage.
+        bit 3 Power Failure: Set to true during a power outage.
+        bit 2 Tamper Detect: Set to true if a tamper event has been detected.
+        bit 1 Low Battery: Set to true when the battery needs maintenance.
+        bit 0 Check Meter: Set to true when a non fatal problem has been detected on the meter such as a measurement
+                           error, memory error, and self check error.
+       @return true if the attribute was set successfully, false otherwise.
+    */
+    bool setMeteringStatus (uint8_t status);
+
+    /**
+       @brief Get the current metering status value.
+       @return The current metering status (bitmap U8 in ZCL).
+    */
+    uint8_t meteringStatus() const {
+      return _metering_cfg.status;
+    }
+
+    /**
        @brief Enable or disable restore mode.
        When restore mode is enabled, the Pilot Wire mode is restored from NVS on startup.
        @param enable true to enable restore mode, false to disable.
@@ -278,5 +355,13 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     float _temperature_min;
     float _temperature_max;
     float _temperature_tolerance;
+
+    // Member variables for Simple Metering cluster (0x0702)
+    bool _metering_enabled;
+    esp_zb_metering_cluster_cfg_t _metering_cfg;
+    esp_zb_uint48_t _summationDelivered;
+    esp_zb_uint24_t _multiplier;
+    esp_zb_uint24_t _divisor;
+    esp_zb_int24_t _instantaneousDemand;
 };
 
