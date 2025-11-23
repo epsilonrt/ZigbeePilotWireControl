@@ -1,8 +1,6 @@
 # ZigbeePilotWireControl
 An Arduino library for controlling pilot wire electric heaters via Zigbee with ESP32-H2 or ESP32-C6.
 
-*Work in progress. Do not use this library until this page message is removed.*
-
 ## Example: Virtual Pilot Wire Control Device
 
 The following example creates a virtual Zigbee Pilot Wire Control device using the `ZigbeePilotWireControl` class. It outputs the current pilot wire mode to the serial console whenever it changes.

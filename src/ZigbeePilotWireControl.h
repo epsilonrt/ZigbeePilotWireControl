@@ -100,10 +100,45 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     /**
        @brief Constructor for ZigbeePilotWireControl.
 
+       Temperature measurement and metering clusters are disabled.
        You must call begin() after constructing the object to initialize the endpoint.
        @param endpoint The Zigbee endpoint number to use for this device.
     */
     ZigbeePilotWireControl (uint8_t endpoint);
+
+    /**
+       @brief Constructor for ZigbeePilotWireControl with temperature measurement.
+       This constructor enables the temperature measurement cluster.
+       The metering cluster is disabled.
+       You must call begin(float currentTemperature) after constructing the object to initialize the endpoint.
+       @param endpoint The Zigbee endpoint number to use for this device.
+       @param tempMin The minimum temperature value for the temperature measurement cluster in degrees Celsius.
+       @param tempMax The maximum temperature value for the temperature measurement cluster in degrees Celsius.
+    */
+    ZigbeePilotWireControl (uint8_t endpoint, float tempMin, float tempMax);
+
+    /**
+       @brief Constructor for ZigbeePilotWireControl with metering.
+       This constructor enables the metering cluster.
+       The temperature measurement cluster is disabled.
+       You must call begin() after constructing the object to initialize the endpoint.
+       @param endpoint The Zigbee endpoint number to use for this device.
+       @param meteringMultiplier The multiplier value for the metering cluster, must be non-zero to enable metering.
+        This value must be updated whis begin(uint32_t meteringMultiplier).
+    */
+    ZigbeePilotWireControl (uint8_t endpoint, uint32_t meteringMultiplier);
+
+    /**
+        @brief Constructor for ZigbeePilotWireControl with temperature measurement and metering.
+       This constructor enables both the temperature measurement and metering clusters.
+       You must call begin(float currentTemperature) after constructing the object to initialize the endpoint.
+       @param endpoint The Zigbee endpoint number to use for this device.
+       @param tempMin The minimum temperature value for the temperature measurement cluster in degrees Celsius.
+       @param tempMax The maximum temperature value for the temperature measurement cluster in degrees Celsius.
+       @param meteringMultiplier The multiplier value for the metering cluster, must be non-zero to enable metering.
+        This value must be updated whis begin(float currentTemperature, uint32_t meteringMultiplier).
+    */
+    ZigbeePilotWireControl (uint8_t endpoint, float tempMin, float tempMax, uint32_t meteringMultiplier);
 
     /**
        @brief Set a callback function to be called when the Pilot Wire mode changes.
@@ -121,16 +156,46 @@ class ZigbeePilotWireControl : public ZigbeeEP {
       _on_mode_change = callback;
     }
 
-
     /**
        @brief Initialize the ZigbeePilotWireControl endpoint and create clusters.
        This method sets up the necessary clusters for Pilot Wire Control,
-       including On/Off, Pilot Wire mode, Temperature Measurement (optional),
-       and Metering (optional), and adds the endpoint to the Zigbee stack.
-       @param enableTemperature If true, adds a temperature measurement cluster to the endpoint.
-       @param enableMetering If true, adds a metering cluster to the endpoint.
+       including On/Off, Pilot Wire mode and adds the endpoint to the Zigbee stack.
+       @return true if the initialization was successful, false otherwise.
     */
-    void begin (bool enableTemperature = false, bool enableMetering = false);
+    bool begin ();
+
+    /**
+       @brief Initialize the ZigbeePilotWireControl endpoint with temperature measurement.
+       This method sets up the necessary clusters for Pilot Wire Control,
+       including On/Off, Pilot Wire mode, Temperature Measurement and adds the endpoint to the Zigbee stack.
+       @param currentTemperature The initial temperature value for the temperature measurement cluster in degrees Celsius.
+       @return true if the initialization was successful, false otherwise.
+    */
+    bool begin (float currentTemperature);
+
+    /**
+       @brief Initialize the ZigbeePilotWireControl endpoint with metering.
+       This method sets up the necessary clusters for Pilot Wire Control,
+       including On/Off, Pilot Wire mode, Metering and adds the endpoint to the Zigbee stack.
+       @param currentPower The initial instantaneous power demand value for the metering cluster in watts (W).
+       @param meteringMultiplier The multiplier value for the metering cluster, this value was set in the constructor.
+        If meteringMultiplier is zero, no change is made to the value set in the constructor.
+       @return true if the initialization was successful, false otherwise.
+    */
+    bool begin (int32_t currentPower, uint32_t meteringMultiplier = 0);
+
+    /**
+       @brief Initialize the ZigbeePilotWireControl endpoint with temperature measurement and metering.
+       This method sets up the necessary clusters for Pilot Wire Control,
+       including On/Off, Pilot Wire mode, Temperature Measurement, Metering
+       and adds the endpoint to the Zigbee stack.
+       @param currentTemperature The initial temperature value for the temperature measurement cluster in degrees Celsius.
+       @param currentPower The initial instantaneous power demand value for the metering cluster in watts (W).
+       @param meteringMultiplier The multiplier value for the metering cluster, this value was set in the constructor.
+        If meteringMultiplier is zero, no change is made to the value set in the constructor.
+       @return true if the initialization was successful, false otherwise.
+    */
+    bool begin (float currentTemperature, int32_t currentPower, uint32_t meteringMultiplier = 0);
 
     /**
        @brief Get the current Pilot Wire mode.
@@ -183,19 +248,16 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     }
 
     /**
-       @brief Set the minimum and maximum temperature values for the temperature measurement cluster.
-       @param min The minimum temperature value in degrees Celsius, the resolution is 0.01 degree.
-       @param max The maximum temperature value in degrees Celsius, the resolution is 0.01 degree.
-       @return true if the min and max values were set successfully, false otherwise.
+       @brief Get the minimum temperature value.
+       @return The minimum temperature value in degrees Celsius. NAN if temperature measurement cluster is not enabled.
     */
-    bool setMinMaxTemperature (float min, float max);
+    float temperatureMin() const;
 
     /**
-       @brief Set the tolerance value for the temperature measurement cluster.
-       @param tolerance The tolerance value in degrees Celsius, the resolution is 0.01 degree.
-       @return true if the tolerance value was set successfully, false otherwise.
+       @brief Get the maximum temperature value.
+       @return The maximum temperature value in degrees Celsius. NAN if temperature measurement cluster is not enabled.
     */
-    bool setTemperatureTolerance (float tolerance);
+    float temperatureMax() const;
 
     /**
        @brief Set the reporting interval for the temperature measurement cluster.
@@ -217,54 +279,63 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     /**
        @brief Set the summation delivered attribute in the metering cluster.
        @param summation_wh The total energy delivered in watt-hours (Wh). uint48_t value.
+              if isNvsEnabled() is true, this value is stored in NVS and restored on startup.
        @return true if the attribute was set successfully, false otherwise.
     */
-    bool setSummationDelivered (uint64_t summation_wh);
+    bool setEnergyWh (uint64_t summation_wh);
 
     /**
        @brief Get the current summation delivered value.
        @return The current summation delivered value in watt-hours (Wh).
     */
-    uint64_t summationDelivered() const;
+    uint64_t energyWh() const;
 
     /**
-       @brief Set the instantaneous demand attribute in the metering cluster.
+       @brief Report the current summation delivered value to the Zigbee network.
+       The reporting is configured via setEnergyWhReporting(), so this method
+       can be used to force a report outside of the configured intervals.
+       @return true if the energy was reported successfully, false otherwise.
+    */
+    bool reportEnergyWh();
+
+    /**
+       @brief Set the reporting interval for the summation delivered attribute in the metering cluster.
+       @param min_interval The minimum reporting interval in seconds. This is the shortest time between reports even if the energy changes.
+       @param max_interval The maximum reporting interval in seconds. This is the longest time between reports even if the energy does not change.
+       @param delta The energy change delta in watt-hours (Wh). This is the minimum change in energy that triggers a report.
+       @return true if the reporting interval was set successfully, false otherwise.
+    */
+    bool setEnergyWhReporting (uint16_t min_interval, uint16_t max_interval, float delta);
+
+    /**
+       @brief Set the electric power attribute in the metering cluster.
        @param demand_w The instantaneous power demand in watts (W). uint24_t value representing -8388608 to 8388607 W.
        @return true if the attribute was set successfully, false otherwise.
     */
-    bool setInstantaneousDemand (int32_t demand_w);
+    bool setPowerW (int32_t demand_w);
 
     /**
-       @brief Get the current instantaneous demand value.
-       @return The current instantaneous demand value in watts (W).
+       @brief Get the current electric power value.
+       @return The current electric power value in watts (W).
     */
-    int32_t instantaneousDemand() const;
+    int32_t powerW() const;
 
     /**
-       @brief Set the scaling multiplier attribute in the metering cluster.
-       @param multiplier The scaling multiplier (U24 in ZCL).
-       @return true if the attribute was set successfully, false otherwise.
+       @brief Report the current electric power value to the Zigbee network.
+       The reporting is configured via setPowerWReporting(), so this method
+       can be used to force a report outside of the configured intervals.
+       @return true if the power was reported successfully, false otherwise.
     */
-    bool setMultiplier (uint32_t multiplier);
+    bool reportPowerW();
 
     /**
-      @brief Get the current scaling multiplier value.
-      @return The current scaling multiplier value.
+       @brief Set the reporting interval for the electric power attribute in the metering cluster.
+       @param min_interval The minimum reporting interval in seconds. This is the shortest time between reports even if the power changes.
+       @param max_interval The maximum reporting interval in seconds. This is the longest time between reports even if the power does not change.
+       @param delta The power change delta in watts (W). This is the minimum change in power that triggers a report.
+       @return true if the reporting interval was set successfully, false otherwise.
     */
-    uint32_t multiplier() const;
-
-    /**
-       @brief Set the scaling divisor attribute in the metering cluster.
-       @param divisor The scaling divisor (U24 in ZCL).
-       @return true if the attribute was set successfully, false otherwise.
-    */
-    bool setDivisor (uint32_t divisor);
-
-    /**
-       @brief Get the current scaling divisor value.
-       @return The current scaling divisor value.
-    */
-    uint32_t divisor() const;
+    bool setPowerWReporting (uint16_t min_interval, uint16_t max_interval, float delta);
 
     /**
        @brief Set the metering status attribute in the metering cluster.
@@ -289,14 +360,15 @@ class ZigbeePilotWireControl : public ZigbeeEP {
       return _metering_cfg.status;
     }
 
+
     /**
        @brief Enable or disable restore mode.
        When restore mode is enabled, the Pilot Wire mode is restored from NVS on startup.
        @param enable true to enable restore mode, false to disable.
        @note This setting is persisted in NVS.
     */
-    void enableRestoreMode (bool enable) {
-      _restore_mode = enable;
+    void enableNvs (bool enable) {
+      _nvs_enabled = enable;
       _prefs.putBool ("restore", enable);
     }
 
@@ -304,8 +376,8 @@ class ZigbeePilotWireControl : public ZigbeeEP {
        @brief Check if restore mode is enabled.
        @return true if restore mode is enabled, false otherwise.
     */
-    bool isRestoreModeEnabled() const {
-      return _restore_mode;
+    bool isNvsEnabled() const {
+      return _nvs_enabled;
     }
 
     /**
@@ -337,6 +409,9 @@ class ZigbeePilotWireControl : public ZigbeeEP {
                        uint16_t min_interval, uint16_t max_interval, float delta,
                        uint16_t manuf_code = ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC);
     bool reportAttribute (uint16_t cluster_id, uint16_t attr_id, uint16_t manuf_code = ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC);
+    bool createPilotWireCluster();
+    bool createTemperatureMeasurementCluster (float currentTemperature);
+    bool createMeteringCluster (int32_t currentPower, uint32_t meteringMultiplier);
 
   private:
     void pilotWireModeChanged();
@@ -347,14 +422,12 @@ class ZigbeePilotWireControl : public ZigbeeEP {
 
     bool _current_state;
     bool _current_state_changed;
-    bool _restore_mode;
+    bool _nvs_enabled;
     Preferences _prefs;
 
     bool _temperature_enabled;
+    esp_zb_temperature_meas_cluster_cfg_t _temperature_cfg;
     float _temperature_value;
-    float _temperature_min;
-    float _temperature_max;
-    float _temperature_tolerance;
 
     // Member variables for Simple Metering cluster (0x0702)
     bool _metering_enabled;

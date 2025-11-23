@@ -39,24 +39,25 @@ const uint16_t ZbeeEndPoint = 1;
 const uint8_t button = BOOT_PIN;
 
 // Temperature values for simulate thermometer cluster
-const float TempMin = 18.0;
-const float TempMax = 24.0;
-const float TempStep = 0.1;
-const float TempDefault = (TempMin + TempMax) / 2.0;
+constexpr float TempMin = 18.0;
+constexpr float TempMax = 24.0;
+constexpr float TempStep = 0.1;
+constexpr float TempDefault = (TempMin + TempMax) / 2.0;
 
-const int32_t PowerMin = 1000; // 1kW
-const int32_t PowerMax = 2000; // 5kW
-const int32_t PowerStep = 100; // 0.1kW
-const int32_t PowerDefault = (PowerMin + PowerMax) / 2;
+constexpr int32_t PowerMin = 1000; // 1kW
+constexpr int32_t PowerMax = 2000; // 5kW
+constexpr int32_t PowerStep = 100; // 0.1kW
+constexpr int32_t PowerDefault = (PowerMin + PowerMax) / 2;
 
-const unsigned UpdateIntervalMs = 60000; // 60 seconds
+constexpr unsigned UpdateIntervalMs = 60000; // 60 seconds
 
 float temperature = TempDefault;
 float tempStep = TempStep;
+float powerStep = PowerStep;
 unsigned long lastTempUpdate = 0;
 
-// Create ZigbeePilotWireControl instance
-ZigbeePilotWireControl  zbPilot (ZbeeEndPoint);
+// Create ZigbeePilotWireControl instance with temperature measurement and metering enabled
+ZigbeePilotWireControl  zbPilot (ZbeeEndPoint, 5.0f, 35.0f, 1); // temp min 5C, temp max 35C, metering enabled
 
 // WS2812B RGB LED that is used on the board to indicate various states
 // Off: black
@@ -102,6 +103,7 @@ ledBlink (CRGB::HTMLColorCode color, unsigned onTimeMs = 100, unsigned offTimeMs
 }
 
 void setup() {
+
   // Init RGB LED
   FastLED.addLeds<WS2812B, PIN_RGB_LED, GRB> (&led, 1);
   FastLED.setBrightness (32);
@@ -123,10 +125,15 @@ void setup() {
   // Set callback function for pilot wire mode change and power state change
   zbPilot.onPilotWireModeChange (setPilotWire);
 
-  zbPilot.begin (true, true); // temperature measurement enabled, metering enabled
-  zbPilot.enableRestoreMode (true); // restore mode from NVS
+  if (zbPilot.begin (temperature, PowerDefault) == false) { 
+    while (1) {
+      ledBlink (CRGB::Red, 50, 50);
+    }
+  }
 
-  // zbPilot.printClusterInfo();
+  zbPilot.enableNvs (true); // restore mode from NVS
+
+  zbPilot.printClusterInfo();
 
   // Add endpoint to Zigbee Core
   log_i ("Adding ZigbeePilotWireControl endpoint to Zigbee Core");
@@ -144,25 +151,7 @@ void setup() {
     ledBlink (CRGB::Green, 100, 100);
   }
 
-  // Set the initial temperature value
-  if (zbPilot.setTemperature (temperature)) {
-
-    log_i ("Pilot Wire temperature set to %.1f C", temperature);
-    lastTempUpdate = millis();
-  }
-  else {
-
-    log_w ("Failed to set Pilot Wire temperature");
-  }
-
-  // if (zbPilot.setInstantaneousDemand (PowerDefault)) {
-
-  //   log_i ("Pilot Wire instantaneous demand set to %d W", PowerDefault);
-  // }
-  // else {
-
-  //   log_w ("Failed to set Pilot Wire instantaneous demand");
-  // }
+  lastTempUpdate = millis(); // Initialize last temperature and power update time
 
   // Configure temperature reporting: min 30s, max 300s, delta 0.1 C
   // min: 30 seconds, never less than 30s to avoid flooding the network
@@ -170,12 +159,24 @@ void setup() {
   // delta: 0.1 C, report if temperature changes by 0.1 degree (with minimal interval of 30s)
   // the default reporting configuration is 30s, 900s, 0.5 C
   if (zbPilot.setTemperatureReporting (30, 300, 0.1)) { // min 30s, max 300s, delta 0.1 C
-
     log_i ("Pilot Wire temperature reporting configured");
   }
   else {
-
     log_w ("Failed to configure Pilot Wire temperature reporting");
+  }
+
+  if (zbPilot.setPowerWReporting (30, 300, 1.0f)) { // min 30s, max 300s, delta 1 W
+    log_i ("Pilot Wire power reporting configured");
+  }
+  else {
+    log_w ("Failed to configure Pilot Wire power reporting");
+  }
+
+  if (zbPilot.setEnergyWhReporting (30, 300, 1.0f)) { // min 30s, max 300s, delta 1 Wh
+    log_i ("Pilot Wire energy reporting configured");
+  }
+  else {
+    log_w ("Failed to configure Pilot Wire energy reporting");
   }
 
   // Report initial attributes
@@ -215,24 +216,76 @@ void loop() {
       zbPilot.setPilotWireMode (static_cast<ZigbeePilotWireMode> (mode));
     }
   }
-  
-  // Update temperature every UpdateIntervalMs milliseconds
-  if ( (millis() - lastTempUpdate) >= UpdateIntervalMs) {
 
-    temperature += tempStep;
+  // Update temperature and metering every UpdateIntervalMs milliseconds
+  unsigned long now = millis();
+  unsigned long delta = now - lastTempUpdate;
+
+  if (delta >= UpdateIntervalMs) {
+
+    // The time is up, update temperature and metering
+    temperature += tempStep; // increment temperature, if tempStep is negative, temperature will decrease
+
     if (temperature >= TempMax || temperature <= TempMin) {
-      // Reverse direction
+      // Reverse direction when reaching limits
       tempStep = -tempStep;
     }
 
     if (zbPilot.setTemperature (temperature)) {
+
+      // The temperature was set successfully
       log_i ("Pilot Wire temperature set to %.1f C", temperature);
-      lastTempUpdate = millis();
-      zbPilot.reportTemperature(); // Force report of temperature
+
+      // if (zbPilot.reportTemperature() == false) { // Force report of temperature
+
+      //   // Failed to report temperature
+      //   log_w ("Failed to report Pilot Wire temperature");
+      // }
     }
     else {
+
+      // Failed to set temperature
       log_w ("Failed to set Pilot Wire temperature");
     }
+
+    float w = zbPilot.powerW(); // get current power in W
+    float wh  = static_cast<float> (zbPilot.energyWh()) + ( (w * delta) / 3600000.0f); // Wh = W * h
+    log_i ("Pilot Wire temperature reported, updating metering: Power=%.1f W, Energy=%.1f Wh", w, wh);
+
+    w += powerStep; // increment power, if powerStep is negative, power will decrease
+    if (w >= PowerMax || w <= PowerMin) {
+      // Reverse direction when reaching limits
+      powerStep = -powerStep;
+    }
+
+    if (zbPilot.setPowerW (static_cast<int32_t> (w))) { // set new power value
+
+      log_i ("Pilot Wire instantaneous demand set to %d W", zbPilot.powerW());
+      // if (!zbPilot.reportPowerW()) { // Force report of power
+
+      //   log_w ("Failed to report Pilot Wire instantaneous demand");
+      // }
+    }
+    else {
+
+      log_w ("Failed to set Pilot Wire instantaneous demand");
+    }
+
+    if (zbPilot.setEnergyWh (static_cast<uint64_t> (wh + 0.5f))) { // set new energy value with rounding
+
+      log_i ("Pilot Wire summation delivered set to %llu Wh", zbPilot.energyWh());
+      // if (!zbPilot.reportEnergyWh()) { // Force report of energy
+
+      //   log_w ("Failed to report Pilot Wire summation delivered");
+      // }
+    }
+    else {
+
+      log_w ("Failed to set Pilot Wire summation delivered");
+    }
+
+    lastTempUpdate = now; // Update last update time
   }
+
   delay (100);
 }

@@ -5,6 +5,25 @@
 #include "ZigbeePilotWireControl.h"
 
 // ----------------------------------------------------------------------------
+static int16_t
+zb_float_to_s16 (float temp) {
+
+  if (isnan (temp)) {
+    return ESP_ZB_ZCL_TEMP_MEASUREMENT_MEASURED_VALUE_DEFAULT; // valeur invalide normalisée ZCL
+  }
+  return (int16_t) (temp * 100.0f);
+}
+
+// ----------------------------------------------------------------------------
+static float
+zb_s16_to_float (int16_t val) {
+  if (val == ESP_ZB_ZCL_TEMP_MEASUREMENT_MEASURED_VALUE_DEFAULT) {
+    return NAN;
+  }
+  return static_cast<float> (val) / 100.0f;
+}
+
+// ----------------------------------------------------------------------------
 static inline uint64_t esp_zb_uint48_to_u64 (const esp_zb_uint48_t &val) {
   return ( (uint64_t) val.high << 32) | val.low;
 }
@@ -52,18 +71,24 @@ static inline esp_zb_uint24_t u32_to_esp_zb_uint24 (uint32_t v) {
 }
 
 // ----------------------------------------------------------------------------
-ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint) :
+ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint, float tempMin, float tempMax,
+                                                uint32_t meteringMultiplier) :
   ZigbeeEP (endpoint), _current_mode (PILOTWIRE_MODE_OFF),
   _state_on_mode (PILOTWIRE_MODE_COMFORT), _on_mode_change (nullptr),
-  _current_state (false), _current_state_changed (true), _restore_mode (false),
-  _temperature_enabled (false), _temperature_value (NAN),
-  _temperature_min (NAN), _temperature_max (NAN), _temperature_tolerance (NAN),
-  _metering_enabled (false),
-  _summationDelivered (u64_to_esp_zb_uint48 (43210)),
-  _instantaneousDemand (i32_to_esp_zb_sint24 (1743)),
-  _multiplier (u32_to_esp_zb_uint24 (1)),
-  _divisor (u32_to_esp_zb_uint24 (1000)),
-  _metering_cfg ({
+  _current_state (false), _current_state_changed (true), _nvs_enabled (false),
+  _temperature_enabled (isnan (tempMin) == false && isnan (tempMax) == false),
+  _temperature_cfg ({
+  .measured_value = ESP_ZB_ZCL_TEMP_MEASUREMENT_MEASURED_VALUE_DEFAULT, // Invalid value
+  .min_value = zb_float_to_s16 (tempMin),
+  .max_value = zb_float_to_s16 (tempMax),
+}),
+_temperature_value (NAN),
+                   _metering_enabled (meteringMultiplier != 0),
+                   _summationDelivered (u64_to_esp_zb_uint48 (0)),
+                   _instantaneousDemand (i32_to_esp_zb_sint24 (0)),
+                   _multiplier (u32_to_esp_zb_uint24 (meteringMultiplier)),
+                   _divisor (u32_to_esp_zb_uint24 (1000)),
+_metering_cfg ({
   .current_summation_delivered = _summationDelivered, // 0x0000 U48 Current summation delivered Wh
   .status = ESP_ZB_ZCL_METERING_STATUS_DEFAULT_VALUE, // 0x0200 MAP8 Metering status
   .uint_of_measure = ESP_ZB_ZCL_METERING_UNIT_KW_KWH_BINARY,       // 0x0300 MAP8 kWh/kW
@@ -83,23 +108,30 @@ ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint) :
 }
 
 // ----------------------------------------------------------------------------
-void
-ZigbeePilotWireControl::begin (bool enableTemperature, bool enableMetering) {
-  // Init NVS
-  _prefs.begin ("PilotWire", false); // namespace "PilotWire"
-  _restore_mode = _prefs.getBool ("restore");
+ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint) :
+  ZigbeePilotWireControl (endpoint, NAN, NAN, 0) {
+}
 
-  if (_restore_mode) {
+// ----------------------------------------------------------------------------
+ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint, float tempMin, float tempMax) :
+  ZigbeePilotWireControl (endpoint, tempMin, tempMax, 0) {
+}
+
+// ----------------------------------------------------------------------------
+ZigbeePilotWireControl::ZigbeePilotWireControl (uint8_t endpoint, uint32_t meteringMultiplier) :
+  ZigbeePilotWireControl (endpoint, NAN, NAN, meteringMultiplier) {
+}
+
+// ----------------------------------------------------------------------------
+// protected methods
+bool
+ZigbeePilotWireControl::createPilotWireCluster() {
+  esp_err_t err;
+
+  if (_nvs_enabled) {
 
     _current_mode = _prefs.getInt ("mode", PILOTWIRE_MODE_OFF);
     log_i ("Restored mode from NVS: %d", _current_mode);
-
-    // if (enableMetering) {
-
-    //   _summationDelivered = u64_to_esp_zb_uint48 (_prefs.getULong64 ("summation"));
-    //   log_i ("Restored summation from NVS: %llu Wh", _summationDelivered);
-    // }
-
   }
   else {
 
@@ -111,12 +143,19 @@ ZigbeePilotWireControl::begin (bool enableTemperature, bool enableMetering) {
 
   // Create cluster list
   _cluster_list = esp_zb_zcl_cluster_list_create();
-  ESP_ERROR_CHECK (_cluster_list != nullptr ? ESP_OK : ESP_FAIL);
+  if (_cluster_list == nullptr) {
+    log_e ("Failed to create cluster list for Pilot Wire Control");
+    return false;
+  }
 
   // Add basic cluster
-  ESP_ERROR_CHECK (esp_zb_cluster_list_add_basic_cluster (_cluster_list,
-                                                          esp_zb_basic_cluster_create (NULL),
-                                                          ESP_ZB_ZCL_CLUSTER_SERVER_ROLE));
+  err = esp_zb_cluster_list_add_basic_cluster (_cluster_list,
+                                               esp_zb_basic_cluster_create (NULL),
+                                               ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+  if (err != ESP_OK) {
+    log_e ("Failed to add Basic cluster to Pilot Wire Control endpoint");
+    return false;
+  }
 
   if (setManufacturerAndModel (PILOT_WIRE_MANUF_NAME, PILOT_WIRE_MODEL_NAME)) {
     log_i ("Manufacturer and Model set for Pilot Wire Control");
@@ -126,118 +165,271 @@ ZigbeePilotWireControl::begin (bool enableTemperature, bool enableMetering) {
   }
 
   // Add identify cluster
-  ESP_ERROR_CHECK (esp_zb_cluster_list_add_identify_cluster (_cluster_list,
-                                                             esp_zb_identify_cluster_create (NULL),
-                                                             ESP_ZB_ZCL_CLUSTER_SERVER_ROLE));
+  err = esp_zb_cluster_list_add_identify_cluster (_cluster_list,
+                                                  esp_zb_identify_cluster_create (NULL),
+                                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+  if (err != ESP_OK) {
+    log_e ("Failed to add Identify cluster to Pilot Wire Control endpoint");
+    return false;
+  }
 
   // Add on/off cluster
-  ESP_ERROR_CHECK (esp_zb_cluster_list_add_on_off_cluster (_cluster_list,
-                                                           esp_zb_on_off_cluster_create (NULL),
-                                                           ESP_ZB_ZCL_CLUSTER_SERVER_ROLE));
-
+  err = esp_zb_cluster_list_add_on_off_cluster (_cluster_list,
+                                                esp_zb_on_off_cluster_create (NULL),
+                                                ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+  if (err != ESP_OK) {
+    log_e ("Failed to add On/Off cluster to Pilot Wire Control endpoint");
+    return false;
+  }
 
   // Create custom Pilot Wire cluster with manufacturer-specific attribute
   esp_zb_attribute_list_t *pilot_wire_cluster = esp_zb_zcl_attr_list_create (PILOT_WIRE_CLUSTER_ID);
-  ESP_ERROR_CHECK (pilot_wire_cluster != nullptr ? ESP_OK : ESP_FAIL);
+  if (pilot_wire_cluster == nullptr) {
+    log_e ("Failed to create Pilot Wire cluster attribute list");
+    return false;
+  }
 
   // Add manufacturer-specific attribute for Pilot Wire mode
-  ESP_ERROR_CHECK (esp_zb_cluster_add_manufacturer_attr (
-                     pilot_wire_cluster,
-                     PILOT_WIRE_CLUSTER_ID,
-                     PILOT_WIRE_MODE_ATTR_ID,
-                     PILOT_WIRE_MANUF_CODE,
-                     ESP_ZB_ZCL_ATTR_TYPE_U8,
-                     ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING,
-                     &_current_mode
-                   ));
+  err = esp_zb_cluster_add_manufacturer_attr (
+          pilot_wire_cluster,
+          PILOT_WIRE_CLUSTER_ID,
+          PILOT_WIRE_MODE_ATTR_ID,
+          PILOT_WIRE_MANUF_CODE,
+          ESP_ZB_ZCL_ATTR_TYPE_U8,
+          ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING,
+          &_current_mode
+        );
+  if (err != ESP_OK) {
+    log_e ("Failed to add Pilot Wire mode attribute to Pilot Wire cluster");
+    return false;
+  }
 
   // Add custom Pilot Wire cluster to cluster list
-  ESP_ERROR_CHECK (esp_zb_cluster_list_add_custom_cluster (_cluster_list,
-                                                           pilot_wire_cluster,
-                                                           ESP_ZB_ZCL_CLUSTER_SERVER_ROLE));
-
-  if (enableTemperature) {
-
-    _temperature_enabled = true;
-    // Create a standard temperature measurement cluster attribute list.
-    // This only contains the mandatory attribute: measured value, min measured value, max measured value
-    // Add Temperature measurement cluster (attribute list) in a cluster list.
-    ESP_ERROR_CHECK (esp_zb_cluster_list_add_temperature_meas_cluster (_cluster_list,
-                                                                       esp_zb_temperature_meas_cluster_create (NULL),
-                                                                       ESP_ZB_ZCL_CLUSTER_SERVER_ROLE));
-
+  err = esp_zb_cluster_list_add_custom_cluster (_cluster_list,
+                                                pilot_wire_cluster,
+                                                ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+  if (err != ESP_OK) {
+    log_e ("Failed to add Pilot Wire cluster to Pilot Wire Control endpoint");
+    return false;
   }
 
-  // -----------------------------------------------------------------------------
-  // Create and attach Metering cluster (0x0702)
-  // -----------------------------------------------------------------------------
-  if (enableMetering) {
-    esp_zb_zcl_status_t ret;
-
-    _metering_enabled = true;
-    _metering_cfg.current_summation_delivered = _summationDelivered; // 0x0000 U48 Current summation delivered Wh
-
-    esp_zb_attribute_list_t *metering_cluster = esp_zb_metering_cluster_create (&_metering_cfg); // just to ensure default values are set
-    ESP_ERROR_CHECK (metering_cluster != nullptr ? ESP_OK : ESP_FAIL);
-
-    // --- Historical Consumption Attribute Set ---
-    ESP_ERROR_CHECK (esp_zb_cluster_add_attr (
-                       metering_cluster,
-                       ESP_ZB_ZCL_CLUSTER_ID_METERING,
-                       ESP_ZB_ZCL_ATTR_METERING_INSTANTANEOUS_DEMAND_ID, // 0x0400
-                       ESP_ZB_ZCL_ATTR_TYPE_S24,
-                       ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING,
-                       &_instantaneousDemand
-                     ));
-
-    // --- Formatting Attribute Set ---
-    ESP_ERROR_CHECK (esp_zb_cluster_add_attr (
-                       metering_cluster,
-                       ESP_ZB_ZCL_CLUSTER_ID_METERING,
-                       ESP_ZB_ZCL_ATTR_METERING_MULTIPLIER_ID, // 0x0301
-                       ESP_ZB_ZCL_ATTR_TYPE_U24,
-                       ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY,
-                       &_multiplier
-                     ));
-
-    ESP_ERROR_CHECK (esp_zb_cluster_add_attr (
-                       metering_cluster,
-                       ESP_ZB_ZCL_CLUSTER_ID_METERING,
-                       ESP_ZB_ZCL_ATTR_METERING_DIVISOR_ID, // 0x0302
-                       ESP_ZB_ZCL_ATTR_TYPE_U24,
-                       ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY,
-                       &_divisor
-                     ));
-
-    static uint8_t  demandFormatting =
-      ESP_ZB_ZCL_METERING_FORMATTING_SET (false, 2, 3);   // Instantaneous demand formatting (U8, 0x0304), 2 digits before decimal, 3 digits after decimal
-    ESP_ERROR_CHECK (esp_zb_cluster_add_attr (
-                       metering_cluster,
-                       ESP_ZB_ZCL_CLUSTER_ID_METERING,
-                       ESP_ZB_ZCL_ATTR_METERING_DEMAND_FORMATTING_ID, // 0x304
-                       ESP_ZB_ZCL_ATTR_TYPE_8BITMAP,
-                       ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY,
-                       &demandFormatting
-                     ));
-
-    ESP_ERROR_CHECK (esp_zb_cluster_list_add_metering_cluster (_cluster_list,
-                                                               metering_cluster,
-                                                               ESP_ZB_ZCL_CLUSTER_SERVER_ROLE));
-
-    log_i ("Metering cluster (0x0702) added on EP %d", _endpoint);
-  }
-
-  log_i ("Zigbee Pilot Wire Control endpoint initialized on EP %d", _endpoint);
+  log_i ("Basic, Identify, On/Off, Pilot Wire clusters added on EP %d", _endpoint);
+  return true;
 }
 
+// ----------------------------------------------------------------------------
+// protected methods
+bool
+ZigbeePilotWireControl::createTemperatureMeasurementCluster (float currentTemperature) {
+  esp_err_t err;
+
+  // Set current temperature value
+  _temperature_value = currentTemperature;
+  _temperature_cfg.measured_value = zb_float_to_s16 (currentTemperature);
+
+  // Create a standard temperature measurement cluster attribute list.
+  // This only contains the mandatory attribute: measured value, min measured value, max measured value
+  // Add Temperature measurement cluster (attribute list) in a cluster list.
+  err = esp_zb_cluster_list_add_temperature_meas_cluster (_cluster_list,
+                                                          esp_zb_temperature_meas_cluster_create (&_temperature_cfg),
+                                                          ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+  if (err != ESP_OK) {
+    log_e ("Failed to add Temperature Measurement cluster to Pilot Wire Control endpoint");
+    return false;
+  }
+  log_i ("Temperature Measurement cluster (0x0402) added on EP %d", _endpoint);
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+// Create and attach Metering cluster (0x0702)
+// protected methods
+bool
+ZigbeePilotWireControl::createMeteringCluster (int32_t currentPower, uint32_t meteringMultiplier) {
+  esp_err_t err;
+
+  if (_nvs_enabled) {
+
+    _summationDelivered = u64_to_esp_zb_uint48 (_prefs.getULong64 ("summation"));
+    log_i ("Restored summation from NVS: %llu Wh", _summationDelivered);
+  }
+
+  if (meteringMultiplier != 0) {
+    _multiplier = u32_to_esp_zb_uint24 (meteringMultiplier);
+  }
+  _instantaneousDemand = i32_to_esp_zb_sint24 (currentPower);
+  _metering_cfg.current_summation_delivered = _summationDelivered; // 0x0000 U48 Current summation delivered Wh
+
+  esp_zb_attribute_list_t *metering_cluster = esp_zb_metering_cluster_create (&_metering_cfg); // just to ensure default values are set
+  if (metering_cluster == nullptr) {
+    log_e ("Failed to create Metering cluster attribute list");
+    return false;
+  }
+
+  // --- Enable reporting on CurrentSummationDelivered and Status attribute ---
+  esp_zb_attribute_list_t *p = metering_cluster;
+  while (p != nullptr) {
+
+    if (p->attribute.type != ESP_ZB_ZCL_ATTR_TYPE_NULL) {
+      if (p->attribute.id == ESP_ZB_ZCL_ATTR_METERING_CURRENT_SUMMATION_DELIVERED_ID || // 0x0000
+          p->attribute.id == ESP_ZB_ZCL_ATTR_METERING_STATUS_ID) { // 0x0200
+
+        p->attribute.access |= ESP_ZB_ZCL_ATTR_ACCESS_REPORTING;
+        log_i ("Enabled reporting on Metering attribute 0x%04X", p->attribute.id);
+      }
+    }
+    p = p->next;
+  }
+
+  // --- Historical Consumption Attribute Set ---
+
+  // InstantaneousDemand attribute
+  err = esp_zb_cluster_add_attr (
+          metering_cluster,
+          ESP_ZB_ZCL_CLUSTER_ID_METERING,
+          ESP_ZB_ZCL_ATTR_METERING_INSTANTANEOUS_DEMAND_ID, // 0x0400
+          ESP_ZB_ZCL_ATTR_TYPE_S24,
+          ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING,
+          &_instantaneousDemand
+        );
+  if (err != ESP_OK) {
+    log_e ("Failed to add InstantaneousDemand attribute to Metering cluster");
+    return false;
+  }
+
+  // --- Formatting Attribute Set ---
+
+  // Multiplier attribute
+  err = esp_zb_cluster_add_attr (
+          metering_cluster,
+          ESP_ZB_ZCL_CLUSTER_ID_METERING,
+          ESP_ZB_ZCL_ATTR_METERING_MULTIPLIER_ID, // 0x0301
+          ESP_ZB_ZCL_ATTR_TYPE_U24,
+          ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY,
+          &_multiplier
+        );
+  if (err != ESP_OK) {
+    log_e ("Failed to add Multiplier attribute to Metering cluster");
+    return false;
+  }
+
+  // Divisor attribute
+  err = esp_zb_cluster_add_attr (
+          metering_cluster,
+          ESP_ZB_ZCL_CLUSTER_ID_METERING,
+          ESP_ZB_ZCL_ATTR_METERING_DIVISOR_ID, // 0x0302
+          ESP_ZB_ZCL_ATTR_TYPE_U24,
+          ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY,
+          &_divisor
+        );
+  if (err != ESP_OK) {
+    log_e ("Failed to add Divisor attribute to Metering cluster");
+    return false;
+  }
+
+  // DemandFormatting attribute
+  static uint8_t  demandFormatting =
+    ESP_ZB_ZCL_METERING_FORMATTING_SET (false, 2, 3);   // Instantaneous demand formatting (U8, 0x0304), 2 digits before decimal, 3 digits after decimal
+  err = esp_zb_cluster_add_attr (
+          metering_cluster,
+          ESP_ZB_ZCL_CLUSTER_ID_METERING,
+          ESP_ZB_ZCL_ATTR_METERING_DEMAND_FORMATTING_ID, // 0x304
+          ESP_ZB_ZCL_ATTR_TYPE_8BITMAP,
+          ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY,
+          &demandFormatting
+        );
+  if (err != ESP_OK) {
+    log_e ("Failed to add DemandFormatting attribute to Metering cluster");
+    return false;
+  }
+
+  // Add Metering cluster to cluster list
+  err = esp_zb_cluster_list_add_metering_cluster (_cluster_list,
+                                                  metering_cluster,
+                                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+  if (err != ESP_OK) {
+    log_e ("Failed to add Metering cluster to cluster list");
+    return false;
+  }
+
+  log_i ("Metering cluster (0x0702) added on EP %d", _endpoint);
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::begin () {
+
+  // Init NVS
+  _prefs.begin ("PilotWire", false); // namespace "PilotWire"
+  _nvs_enabled = _prefs.getBool ("restore");
+
+  return createPilotWireCluster();
+}
+
+// ----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::begin (float currentTemperature) {
+
+  if (begin()) {
+
+    if (_temperature_enabled) {
+
+      return createTemperatureMeasurementCluster (currentTemperature);
+    }
+    else {
+
+      log_w ("Temperature Measurement cluster not enabled");
+    }
+    return true;
+  }
+  return false;
+}
+
+// ----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::begin (int32_t currentPower, uint32_t meteringMultiplier) {
+
+  if (begin()) {
+
+    if (_metering_enabled) {
+
+      return createMeteringCluster (currentPower, meteringMultiplier);
+    }
+    else {
+
+      log_w ("Metering cluster not enabled");
+    }
+    return true;
+  }
+  return false;
+}
+
+// ----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::begin (float currentTemperature, int32_t currentPower, uint32_t meteringMultiplier) {
+
+  if (begin (currentTemperature)) {
+
+    if (_metering_enabled) {
+
+      return createMeteringCluster (currentPower, meteringMultiplier);
+    }
+    else {
+
+      log_w ("Metering cluster not enabled");
+    }
+    return true;
+  }
+  return false;
+}
 
 // -----------------------------------------------------------------------------
-// TODO: to test and verify
 bool
-ZigbeePilotWireControl::setSummationDelivered (uint64_t summation_wh) {
+ZigbeePilotWireControl::setEnergyWh (uint64_t summation_wh) {
 
   _summationDelivered = u64_to_esp_zb_uint48 (summation_wh);
-  if (_restore_mode) {
+  if (_nvs_enabled) {
 
     // Save to NVS
     _prefs.putULong64 ("summation", summation_wh);
@@ -262,9 +454,8 @@ ZigbeePilotWireControl::setSummationDelivered (uint64_t summation_wh) {
 }
 
 // -----------------------------------------------------------------------------
-// TODO: to test and verify
 bool
-ZigbeePilotWireControl::setInstantaneousDemand (int32_t demand_w) {
+ZigbeePilotWireControl::setPowerW (int32_t demand_w) {
 
   _instantaneousDemand = i32_to_esp_zb_sint24 (demand_w);
   esp_zb_lock_acquire (portMAX_DELAY);
@@ -286,82 +477,47 @@ ZigbeePilotWireControl::setInstantaneousDemand (int32_t demand_w) {
 }
 
 // -----------------------------------------------------------------------------
-// TODO: to test and verify
-bool 
-ZigbeePilotWireControl::setMultiplier (uint32_t multiplier) {
-
-  _multiplier = u32_to_esp_zb_uint24 (multiplier);
-  esp_zb_lock_acquire (portMAX_DELAY);
-  esp_zb_zcl_status_t ret = esp_zb_zcl_set_attribute_val (
-                              _endpoint,
-                              ESP_ZB_ZCL_CLUSTER_ID_METERING,
-                              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-                              ESP_ZB_ZCL_ATTR_METERING_MULTIPLIER_ID,
-                              &_multiplier,
-                              false // do not check access rights
-                            );
-  esp_zb_lock_release();
-  if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
-
-    log_e ("Failed to set Multiplier: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
-    return false;
-  }
-  return true;
-}
-
-// ---------------------------------------------------------------------------
-// TODO: to test and verify
-bool 
-ZigbeePilotWireControl::setDivisor (uint32_t divisor) {
-
-  esp_zb_uint24_t val = u32_to_esp_zb_uint24 (divisor);
-  esp_zb_lock_acquire (portMAX_DELAY);
-  esp_zb_zcl_status_t ret = esp_zb_zcl_set_attribute_val (
-                              _endpoint,
-                              ESP_ZB_ZCL_CLUSTER_ID_METERING,
-                              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-                              ESP_ZB_ZCL_ATTR_METERING_DIVISOR_ID,
-                              &val,
-                              false // do not check access rights
-                            );
-  esp_zb_lock_release();
-  if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
-
-    log_e ("Failed to set Divisor: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
-    return false;
-  }
-  return true;
-}
-
-// -----------------------------------------------------------------------------
-uint64_t 
-ZigbeePilotWireControl::summationDelivered() const {
+uint64_t
+ZigbeePilotWireControl::energyWh() const {
 
   return esp_zb_uint48_to_u64 (_summationDelivered);
 }
 
 // -----------------------------------------------------------------------------
-int32_t 
-ZigbeePilotWireControl::instantaneousDemand() const {
+int32_t
+ZigbeePilotWireControl::powerW() const {
 
   return esp_zb_sint24_to_i32 (_instantaneousDemand);
 }
-// -----------------------------------------------------------------------------
-uint32_t 
-ZigbeePilotWireControl::multiplier() const {
-
-  return esp_zb_uint24_to_u32 (_multiplier);
-}
 
 // -----------------------------------------------------------------------------
-uint32_t 
-ZigbeePilotWireControl::divisor() const {
+bool
+ZigbeePilotWireControl::setMeteringStatus (uint8_t status) {
 
-  return esp_zb_uint24_to_u32 (_divisor);
+  _metering_cfg.status = status;
+  esp_zb_lock_acquire (portMAX_DELAY);
+  esp_zb_zcl_status_t ret = esp_zb_zcl_set_attribute_val (
+                              _endpoint,
+                              ESP_ZB_ZCL_CLUSTER_ID_METERING,
+                              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                              ESP_ZB_ZCL_ATTR_METERING_STATUS_ID,
+                              &_metering_cfg.status,
+                              false // do not check access rights
+                            );
+  esp_zb_lock_release();
+  if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
+
+    log_e ("Failed to set Metering Status: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
+    return false;
+  }
+  return true;
 }
 
 // ----------------------------------------------------------------------------
 // callback method called when an attribute is set from Zigbee network
+// attributes handled:
+// - Pilot Wire Mode (manufacturer-specific attribute)
+// - On/Off
 void
 ZigbeePilotWireControl::zbAttributeSet (const esp_zb_zcl_set_attr_value_message_t *message) {
 
@@ -487,63 +643,6 @@ ZigbeePilotWireControl::pilotWireModeChanged() {
 
 // ----------------------------------------------------------------------------
 bool
-ZigbeePilotWireControl::reportAttributes() {
-  esp_zb_zcl_status_t ret;
-
-  pilotWireModeChanged();
-
-  // Report Pilot Wire mode attribute
-  log_v ("Reporting Pilot Wire mode attribute: %d", _current_mode);
-  esp_zb_lock_acquire (portMAX_DELAY);
-  ret = esp_zb_zcl_set_manufacturer_attribute_val (
-          _endpoint,
-          PILOT_WIRE_CLUSTER_ID,
-          ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-          PILOT_WIRE_MANUF_CODE,
-          PILOT_WIRE_MODE_ATTR_ID,
-          &_current_mode,
-          false
-        );
-  esp_zb_lock_release();
-  if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
-    log_e ("Failed to update Pilot Wire mode attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
-    return false;
-  }
-
-  // Report On/Off attribute
-  if (_current_state_changed) {
-
-    // _current_state changed, report attribute
-    _current_state_changed = false;
-    log_v ("Updating On/Off attribute to %d", _current_state);
-    esp_zb_lock_acquire (portMAX_DELAY);
-    ret = esp_zb_zcl_set_attribute_val (
-            _endpoint,
-            ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
-            ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-            ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
-            &_current_state,
-            false
-          );
-    esp_zb_lock_release();
-    if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
-      log_e ("Failed to update On/Off attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
-      return false;
-    }
-  }
-
-  if (_temperature_enabled) {
-
-    if (reportTemperature() == false) {
-      log_e ("Failed to report Temperature attribute");
-      return false;
-    }
-  }
-  return true;
-}
-
-// ----------------------------------------------------------------------------
-bool
 ZigbeePilotWireControl::setPilotWireMode (ZigbeePilotWireMode mode) {
 
   if (mode != _current_mode) {
@@ -565,16 +664,6 @@ ZigbeePilotWireControl::setPilotWireMode (ZigbeePilotWireMode mode) {
     return reportAttributes();
   }
   return true;
-}
-
-
-// ----------------------------------------------------------------------------
-static int16_t
-zb_float_to_s16 (float temp) {
-  if (isnan (temp)) {
-    return ESP_ZB_ZCL_TEMP_MEASUREMENT_MEASURED_VALUE_DEFAULT; // valeur invalide normalisée ZCL
-  }
-  return (int16_t) (temp * 100.0f);
 }
 
 // ----------------------------------------------------------------------------
@@ -602,84 +691,58 @@ ZigbeePilotWireControl::setTemperature (float temperature) {
   return false;
 }
 
-
-
-// ----------------------------------------------------------------------------
-bool
-ZigbeePilotWireControl::reportTemperature() {
-  if (_temperature_enabled) {
-    return reportAttribute (ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
-                            ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
-                            ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC);
-  }
-  log_w ("Temperature measurement cluster not enabled");
-  return false;
-}
-
 // ----------------------------------------------------------------------------
 bool
 ZigbeePilotWireControl::setTemperatureReporting (uint16_t min_interval, uint16_t max_interval, float delta) {
 
   if (_temperature_enabled) {
-    if (setReporting (ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
-                      ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
-                      min_interval, max_interval, delta,
-                      ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC) == false) {
-      return false;
-    }
+
+    return  setReporting (ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
+                          ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
+                          min_interval, max_interval, delta * 100.0f); // delta in 0.01 °C;
   }
+  log_w ("Temperature measurement cluster not enabled");
   return true;
 }
 
 // ----------------------------------------------------------------------------
-// TODO: debug and test
-bool
-ZigbeePilotWireControl::setMinMaxTemperature (float min, float max) {
-
-  if (_temperature_enabled) {
-
-    int16_t zb_min = zb_float_to_s16 (min);
-    int16_t zb_max = zb_float_to_s16 (max);
-    esp_zb_attribute_list_t *temp_measure_cluster =
-      esp_zb_cluster_list_get_cluster (_cluster_list, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-    esp_err_t ret = esp_zb_cluster_update_attr (temp_measure_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, (void *) &zb_min);
-    if (ret != ESP_OK) {
-      log_e ("Failed to set min value: 0x%x: %s", ret, esp_err_to_name (ret));
-      return false;
-    }
-    ret = esp_zb_cluster_update_attr (temp_measure_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, (void *) &zb_max);
-    if (ret != ESP_OK) {
-      log_e ("Failed to set max value: 0x%x: %s", ret, esp_err_to_name (ret));
-      return false;
-    }
-    _temperature_min = min;
-    _temperature_max = max;
-    return true;
-  }
-  log_w ("Temperature measurement cluster not enabled");
-  return false;
+float
+ZigbeePilotWireControl::temperatureMin() const {
+  return zb_s16_to_float (_temperature_cfg.min_value);
 }
 
 // ----------------------------------------------------------------------------
-// TODO: debug and test
+float
+ZigbeePilotWireControl::temperatureMax() const {
+  return zb_s16_to_float (_temperature_cfg.max_value);
+}
+// -----------------------------------------------------------------------------
 bool
-ZigbeePilotWireControl::setTemperatureTolerance (float tolerance) {
-  if (_temperature_enabled) {
+ZigbeePilotWireControl::setEnergyWhReporting (uint16_t min_interval, uint16_t max_interval, float delta) {
 
-    // Convert tolerance to ZCL uint16_t
-    uint16_t zb_tolerance = (uint16_t) (tolerance * 100);
-    esp_zb_attribute_list_t *temp_measure_cluster =
-      esp_zb_cluster_list_get_cluster (_cluster_list, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-    esp_err_t ret = esp_zb_temperature_meas_cluster_add_attr (temp_measure_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_TOLERANCE_ID, (void *) &zb_tolerance);
-    if (ret != ESP_OK) {
-      log_e ("Failed to set tolerance: 0x%x: %s", ret, esp_err_to_name (ret));
-      return false;
-    }
-    _temperature_tolerance = tolerance;
-    return true;
+  if (_metering_enabled) {
+
+    return setReporting (ESP_ZB_ZCL_CLUSTER_ID_METERING,
+                         ESP_ZB_ZCL_ATTR_METERING_CURRENT_SUMMATION_DELIVERED_ID,
+                         min_interval, max_interval, delta);
   }
-  log_w ("Temperature measurement cluster not enabled");
-  return false;
+
+  log_w ("Metering cluster not enabled on this endpoint");
+  return true;
+}
+
+// -----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::setPowerWReporting (uint16_t min_interval, uint16_t max_interval, float delta) {
+  if (_metering_enabled) {
+
+    return setReporting (ESP_ZB_ZCL_CLUSTER_ID_METERING,
+                         ESP_ZB_ZCL_ATTR_METERING_INSTANTANEOUS_DEMAND_ID,
+                         min_interval, max_interval, delta);
+  }
+
+  log_w ("Metering cluster not enabled on this endpoint");
+  return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -687,8 +750,9 @@ ZigbeePilotWireControl::setTemperatureTolerance (float tolerance) {
 bool
 ZigbeePilotWireControl::setReporting (uint16_t cluster_id, uint16_t attr_id,
                                       uint16_t min_interval, uint16_t max_interval, float delta, uint16_t manuf_code) {
-
+  esp_err_t ret;
   esp_zb_zcl_reporting_info_t reporting_info;
+
   memset (&reporting_info, 0, sizeof (esp_zb_zcl_reporting_info_t));
   reporting_info.direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_SRV;
   reporting_info.ep = _endpoint;
@@ -699,17 +763,120 @@ ZigbeePilotWireControl::setReporting (uint16_t cluster_id, uint16_t attr_id,
   reporting_info.u.send_info.max_interval = max_interval;
   reporting_info.u.send_info.def_min_interval = min_interval;
   reporting_info.u.send_info.def_max_interval = max_interval;
-  reporting_info.u.send_info.delta.u16 = (uint16_t) (delta * 100); // Convert delta to ZCL uint16_t
+  reporting_info.u.send_info.delta.u16 = static_cast<uint16_t> (delta + 0.5f); // Convert delta to ZCL uint16_t
   reporting_info.dst.profile_id = ESP_ZB_AF_HA_PROFILE_ID;
   reporting_info.manuf_code = manuf_code;
+
   esp_zb_lock_acquire (portMAX_DELAY);
-  esp_err_t ret = esp_zb_zcl_update_reporting_info (&reporting_info);
+  ret = esp_zb_zcl_update_reporting_info (&reporting_info);
   esp_zb_lock_release();
+
   if (ret != ESP_OK) {
-    log_e ("Failed to set reporting: 0x%x: %s", ret, esp_err_to_name (ret));
+    log_e ("Failed to set reporting cluster 0x%04X: 0x%x: %s", cluster_id, ret, esp_err_to_name (ret));
     return false;
   }
   return true;
+}
+
+// ----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::reportTemperature() {
+
+  if (_temperature_enabled) {
+    return reportAttribute (ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
+                            ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID);
+  }
+  log_w ("Temperature measurement cluster not enabled");
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::reportEnergyWh() {
+
+  if (_metering_enabled) {
+    return reportAttribute (ESP_ZB_ZCL_CLUSTER_ID_METERING,
+                            ESP_ZB_ZCL_ATTR_METERING_CURRENT_SUMMATION_DELIVERED_ID);
+  }
+  log_w ("Metering cluster not enabled on this endpoint");
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::reportPowerW() {
+
+  if (_metering_enabled) {
+    return reportAttribute (ESP_ZB_ZCL_CLUSTER_ID_METERING,
+                            ESP_ZB_ZCL_ATTR_METERING_INSTANTANEOUS_DEMAND_ID);
+  }
+  log_w ("Metering cluster not enabled on this endpoint");
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::reportAttributes() {
+  esp_zb_zcl_status_t ret;
+  bool status = true;
+
+  pilotWireModeChanged();
+
+  // Report Pilot Wire mode attribute
+  log_v ("Reporting Pilot Wire mode attribute: %d", _current_mode);
+  esp_zb_lock_acquire (portMAX_DELAY);
+  ret = esp_zb_zcl_set_manufacturer_attribute_val (
+          _endpoint,
+          PILOT_WIRE_CLUSTER_ID,
+          ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+          PILOT_WIRE_MANUF_CODE,
+          PILOT_WIRE_MODE_ATTR_ID,
+          &_current_mode,
+          false
+        );
+  esp_zb_lock_release();
+  if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
+    log_e ("Failed to update Pilot Wire mode attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
+    status = false;
+  }
+
+  // Report On/Off attribute
+  if (_current_state_changed) {
+
+    // _current_state changed, report attribute
+    _current_state_changed = false;
+    log_v ("Updating On/Off attribute to %d", _current_state);
+    esp_zb_lock_acquire (portMAX_DELAY);
+    ret = esp_zb_zcl_set_attribute_val (
+            _endpoint,
+            ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
+            ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+            ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+            &_current_state,
+            false
+          );
+    esp_zb_lock_release();
+    if (ret != ESP_ZB_ZCL_STATUS_SUCCESS) {
+      log_e ("Failed to update On/Off attribute: 0x%x: %s", ret, esp_zb_zcl_status_to_name (ret));
+      status = false;
+    }
+  }
+
+  if (_temperature_enabled) {
+    if (reportTemperature() == false) {
+      status = false;
+    }
+  }
+
+  if (_metering_enabled) {
+    if (reportEnergyWh() == false) {
+      status = false;
+    }
+    if (reportPowerW() == false) {
+      status = false;
+    }
+  }
+  return status;
 }
 
 // ----------------------------------------------------------------------------
@@ -729,11 +896,13 @@ ZigbeePilotWireControl::reportAttribute (uint16_t cluster_id, uint16_t attr_id,
   esp_zb_lock_acquire (portMAX_DELAY);
   esp_err_t ret = esp_zb_zcl_report_attr_cmd_req (&report_attr_cmd);
   esp_zb_lock_release();
+
   if (ret != ESP_OK) {
     log_e ("Failed to send attribute report: 0x%x: %s", ret, esp_err_to_name (ret));
     return false;
   }
-  log_v ("Attribute report sent");
+
+  log_v ("Attribute report sent for cluster 0x%04X attr 0x%04X", cluster_id, attr_id);
   return true;
 }
 
