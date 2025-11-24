@@ -3,7 +3,7 @@ An Arduino library for controlling pilot wire electric heaters via Zigbee with E
 
 [![Build](https://github.com/epsilonrt/ZigbeePilotWireControl/actions/workflows/build.yml/badge.svg)](https://github.com/epsilonrt/ZigbeePilotWireControl/actions/workflows/build.yml)
 [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/epsilonrt/ZigbeePilotWireControl?include_prereleases)](https://github.com/epsilonrt/ZigbeePilotWireControl/releases)
-[![PlatformIO Registry](https://badges.registry.platformio.org/packages/epsilonrt/library/ZigbeePilotWireControl.svg)](https://registry.platformio.org/libraries/epsilonrt/ZigbeePilotWireControl)
+[![PlatformIO Registry](https://badges.registry.platformio.org/packages/epsilonrt/library/ZigbeePilotWireControl.svg)](https://registry.platformio.org/libraries/epsilonrt/ZigbeePilotWire)
 [![Arduino Registry](https://www.ardu-badge.com/badge/ZigbeePilotWireControl.svg)](https://www.arduinolibraries.info/libraries/ZigbeePilotWireControl)  
 [![Framework](https://img.shields.io/badge/Framework-Arduino-blue)](https://www.arduino.cc/)
 [![Platform ESP32](https://img.shields.io/badge/Platform-Espressif32-orange)](https://www.espressif.com/en/products/socs/esp32)
