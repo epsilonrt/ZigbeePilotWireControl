@@ -31,6 +31,6 @@ jobs:
     - name: Install PlatformIO Core
       run: pip install --upgrade platformio
     - name: Step 6 - Run build examples using PlatformIO
-      run: pio ci --lib="." -e seeed_xiao_esp32c6 -c examples/platformio.ini
+      run: pio ci --lib="." -e adafruit_feather_esp32c6 -c examples/platformio.ini
       env:
         PLATFORMIO_CI_SRC: ${{ matrix.example }}
