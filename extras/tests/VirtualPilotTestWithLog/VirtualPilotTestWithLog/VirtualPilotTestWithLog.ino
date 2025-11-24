@@ -236,11 +236,11 @@ void loop() {
       // The temperature was set successfully
       log_i ("Pilot Wire temperature set to %.1f C", temperature);
 
-      // if (zbPilot.reportTemperature() == false) { // Force report of temperature
+      if (zbPilot.reportTemperature() == false) { // Force report of temperature
 
-      //   // Failed to report temperature
-      //   log_w ("Failed to report Pilot Wire temperature");
-      // }
+        // Failed to report temperature
+        log_w ("Failed to report Pilot Wire temperature");
+      }
     }
     else {
 
@@ -261,10 +261,10 @@ void loop() {
     if (zbPilot.setPowerW (static_cast<int32_t> (w))) { // set new power value
 
       log_i ("Pilot Wire instantaneous demand set to %d W", zbPilot.powerW());
-      // if (!zbPilot.reportPowerW()) { // Force report of power
+      if (!zbPilot.reportPowerW()) { // Force report of power
 
-      //   log_w ("Failed to report Pilot Wire instantaneous demand");
-      // }
+        log_w ("Failed to report Pilot Wire instantaneous demand");
+      }
     }
     else {
 
@@ -274,10 +274,10 @@ void loop() {
     if (zbPilot.setEnergyWh (static_cast<uint64_t> (wh + 0.5f))) { // set new energy value with rounding
 
       log_i ("Pilot Wire summation delivered set to %llu Wh", zbPilot.energyWh());
-      // if (!zbPilot.reportEnergyWh()) { // Force report of energy
+      if (!zbPilot.reportEnergyWh()) { // Force report of energy
 
-      //   log_w ("Failed to report Pilot Wire summation delivered");
-      // }
+        log_w ("Failed to report Pilot Wire summation delivered");
+      }
     }
     else {
 

@@ -4,13 +4,13 @@
       "path": "."
     },
     {
-      "path": "examples/VirtualPilotTestWithLog"
-    },
-    {
       "path": "examples/VirtualPilotRgbLed"
     },
     {
       "path": "examples/VirtualPilotSerial"
+    },
+    {
+      "path": "extras/tests/VirtualPilotTestWithLog"
     }
   ],
   "settings": {}
