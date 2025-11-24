@@ -1,6 +1,12 @@
 # ZigbeePilotWireControl
 An Arduino library for controlling pilot wire electric heaters via Zigbee with ESP32-H2 or ESP32-C6.
 
+[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/epsilonrt/ZigbeePilotWireControl?include_prereleases)](https://github.com/epsilonrt/ZigbeePilotWireControl/releases)  
+[![Framework](https://img.shields.io/badge/Framework-Arduino-blue)](https://www.arduino.cc/)
+[![Platform ESP32](https://img.shields.io/badge/Platform-Espressif32-orange)](https://www.espressif.com/en/products/socs/esp32)
+
+-------
+
 ## Example: Virtual Pilot Wire Control Device
 
 The following example creates a virtual Zigbee Pilot Wire Control device using the `ZigbeePilotWireControl` class. It outputs the current pilot wire mode to the serial console whenever it changes.
@@ -9,7 +15,8 @@ The controller can be tested using a Zigbee coordinator with support for the Pil
 
 From Home Assistant with Zigbee integration, you can control the pilot wire mode using the Pilot Wire Control card automtically created for the device with the [quirks](extras/homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py) provided:
 
-![Pilot Wire Control card in Home Assistant](extras/images/ha_lovelace_without_mes.png)
+![Pilot Wire Control card in Home Assistant](https://raw.githubusercontent.com/epsilonrt/ZigbeePilotWireControl/main/extras/images/ha_lovelace_without_mes.png)
+
 
 On the serial console, you will see output like this when changing the mode from the controller:
 
@@ -93,3 +100,9 @@ void loop() {
 ```
 
 The complete example code can be found in the `examples/VirtualPilotSerial` folder of this repository. Other examples demonstrate using an RGB LED or real pilot wire output control.
+
+## Temperature and Electric Metering
+
+The library also includes support for optional Temperature Measurement and Electrical Measurement clusters. These can be used to report the ambient temperature and power consumption of the heater. See the `examples/VirtualPilotWithTempAndMeter` example for a demonstration of these features.
+
+![Pilot Wire Control in Home Assistant with measurements](https://raw.githubusercontent.com/epsilonrt/ZigbeePilotWireControl/main/extras/images/ha_lovelace_full.png)
