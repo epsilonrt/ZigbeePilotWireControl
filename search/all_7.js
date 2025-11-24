@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['onpilotwiremodechange_0',['onPilotWireModeChange',['../class_zigbee_pilot_wire_control.html#ac77bd7f31027ee2b87fc22bb135f8fc1',1,'ZigbeePilotWireControl']]]
+  ['metering_0',['Temperature and Electric Metering',['../index.html#autotoc_md3',1,'']]],
+  ['meteringstatus_1',['meteringStatus',['../class_zigbee_pilot_wire_control.html#a85d3eb6ff0ff2ed1312f635b4c18a960',1,'ZigbeePilotWireControl']]]
 ];

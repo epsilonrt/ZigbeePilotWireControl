@@ -1,6 +1,12 @@
 var searchData=
 [
-  ['temperature_0',['temperature',['../class_zigbee_pilot_wire_control.html#aa241b3eb37e52a0ecf2e4e3fc34b2abc',1,'ZigbeePilotWireControl']]],
-  ['temperaturemax_1',['temperatureMax',['../class_zigbee_pilot_wire_control.html#a055926120cbe1a52b62c7ff252cd1bd7',1,'ZigbeePilotWireControl']]],
-  ['temperaturemin_2',['temperatureMin',['../class_zigbee_pilot_wire_control.html#abab50c432a817ef2b11e0775b3c1b07a',1,'ZigbeePilotWireControl']]]
+  ['setenergywh_0',['setEnergyWh',['../class_zigbee_pilot_wire_control.html#aacfa4e9aab6bd9e164bacf511021cc16',1,'ZigbeePilotWireControl']]],
+  ['setenergywhreporting_1',['setEnergyWhReporting',['../class_zigbee_pilot_wire_control.html#afd82311720caaf0dca4feac29d364d40',1,'ZigbeePilotWireControl']]],
+  ['setmeteringstatus_2',['setMeteringStatus',['../class_zigbee_pilot_wire_control.html#af35e5f444cca93b0219c71578eb94a00',1,'ZigbeePilotWireControl']]],
+  ['setpilotwiremode_3',['setPilotWireMode',['../class_zigbee_pilot_wire_control.html#a75937e0967dd85e947515be1af4e88bb',1,'ZigbeePilotWireControl']]],
+  ['setpowerw_4',['setPowerW',['../class_zigbee_pilot_wire_control.html#a0d0ee4ed6b102c305ff843bf04054f99',1,'ZigbeePilotWireControl']]],
+  ['setpowerwreporting_5',['setPowerWReporting',['../class_zigbee_pilot_wire_control.html#a1992fc683f805895fc341cdafaa40e11',1,'ZigbeePilotWireControl']]],
+  ['setreporting_6',['setReporting',['../class_zigbee_pilot_wire_control.html#a7968f6a22b784045bdccedb06d987ccc',1,'ZigbeePilotWireControl']]],
+  ['settemperature_7',['setTemperature',['../class_zigbee_pilot_wire_control.html#a0b056986ab0ec45c8ca3e94df0f91aea',1,'ZigbeePilotWireControl']]],
+  ['settemperaturereporting_8',['setTemperatureReporting',['../class_zigbee_pilot_wire_control.html#a7bff69bc6bef95a39d21f737380004f1',1,'ZigbeePilotWireControl']]]
 ];
