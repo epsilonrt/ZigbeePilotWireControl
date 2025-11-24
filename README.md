@@ -1,6 +1,7 @@
 # ZigbeePilotWireControl
 An Arduino library for controlling pilot wire electric heaters via Zigbee with ESP32-H2 or ESP32-C6.
 
+[![Build](https://github.com/epsilonrt/ZigbeePilotWireControl/actions/workflows/build.yml/badge.svg)](https://github.com/epsilonrt/ZigbeePilotWireControl/actions/workflows/build.yml)
 [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/epsilonrt/ZigbeePilotWireControl?include_prereleases)](https://github.com/epsilonrt/ZigbeePilotWireControl/releases)  
 [![Framework](https://img.shields.io/badge/Framework-Arduino-blue)](https://www.arduino.cc/)
 [![Platform ESP32](https://img.shields.io/badge/Platform-Espressif32-orange)](https://www.espressif.com/en/products/socs/esp32)
