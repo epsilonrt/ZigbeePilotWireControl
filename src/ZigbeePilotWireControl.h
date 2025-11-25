@@ -161,6 +161,7 @@ class ZigbeePilotWireControl : public ZigbeeEP {
        This method sets up the necessary clusters for Pilot Wire Control,
        including On/Off, Pilot Wire mode and adds the endpoint to the Zigbee stack.
        @return true if the initialization was successful, false otherwise.
+       @note This method must be called before to add the endpoint to the Zigbee core.
     */
     bool begin ();
 
@@ -170,6 +171,7 @@ class ZigbeePilotWireControl : public ZigbeeEP {
        including On/Off, Pilot Wire mode, Temperature Measurement and adds the endpoint to the Zigbee stack.
        @param currentTemperature The initial temperature value for the temperature measurement cluster in degrees Celsius.
        @return true if the initialization was successful, false otherwise.
+       @note This method must be called before to add the endpoint to the Zigbee core.
     */
     bool begin (float currentTemperature);
 
@@ -181,6 +183,7 @@ class ZigbeePilotWireControl : public ZigbeeEP {
        @param meteringMultiplier The multiplier value for the metering cluster, this value was set in the constructor.
         If meteringMultiplier is zero, no change is made to the value set in the constructor.
        @return true if the initialization was successful, false otherwise.
+       @note This method must be called before to add the endpoint to the Zigbee core.
     */
     bool begin (int32_t currentPower, uint32_t meteringMultiplier = 0);
 
@@ -194,6 +197,7 @@ class ZigbeePilotWireControl : public ZigbeeEP {
        @param meteringMultiplier The multiplier value for the metering cluster, this value was set in the constructor.
         If meteringMultiplier is zero, no change is made to the value set in the constructor.
        @return true if the initialization was successful, false otherwise.
+       @note This method must be called before to add the endpoint to the Zigbee core.
     */
     bool begin (float currentTemperature, int32_t currentPower, uint32_t meteringMultiplier = 0);
 
@@ -226,11 +230,11 @@ class ZigbeePilotWireControl : public ZigbeeEP {
     bool setPilotWireMode (ZigbeePilotWireMode mode);
 
     /**
-       @brief Report the current attributes to the Zigbee network.
-       This method updates the Pilot Wire mode, On/Off and temperature (if enabled) attributes in the Zigbee stack.
-       @return true if the attributes were reported successfully, false otherwise.
+        @brief Report the current Pilot Wire mode and On/Off attributes to the Zigbee network.
+        This method call the callback to notify the application of the current mode, and
+        updates the Pilot Wire mode and On/Off attributes in the Zigbee stack.
     */
-    bool reportAttributes();
+    bool reportPilotModeAndOnOff ();
 
     /**
        @brief Set the temperature value for the temperature measurement cluster.
@@ -360,6 +364,13 @@ class ZigbeePilotWireControl : public ZigbeeEP {
       return _metering_cfg.status;
     }
 
+    /**
+       @brief Report the current attributes to the Zigbee network.
+       This method updates the Pilot Wire mode, On/Off, temperature (if enabled)
+       and metering (if enabled) attributes in the Zigbee stack.
+       @return true if the attributes were reported successfully, false otherwise.
+    */
+    bool reportAttributes();
 
     /**
        @brief Enable or disable restore mode.

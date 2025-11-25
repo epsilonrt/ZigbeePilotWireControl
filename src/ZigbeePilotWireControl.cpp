@@ -816,7 +816,7 @@ ZigbeePilotWireControl::reportPowerW() {
 
 // ----------------------------------------------------------------------------
 bool
-ZigbeePilotWireControl::reportAttributes() {
+ZigbeePilotWireControl::reportPilotModeAndOnOff () {
   esp_zb_zcl_status_t ret;
   bool status = true;
 
@@ -862,6 +862,16 @@ ZigbeePilotWireControl::reportAttributes() {
     }
   }
 
+  return status;
+}
+
+// ----------------------------------------------------------------------------
+bool
+ZigbeePilotWireControl::reportAttributes() {
+  esp_zb_zcl_status_t ret;
+
+  bool status = reportPilotModeAndOnOff();
+
   if (_temperature_enabled) {
     if (reportTemperature() == false) {
       status = false;
@@ -876,6 +886,7 @@ ZigbeePilotWireControl::reportAttributes() {
       status = false;
     }
   }
+
   return status;
 }
 

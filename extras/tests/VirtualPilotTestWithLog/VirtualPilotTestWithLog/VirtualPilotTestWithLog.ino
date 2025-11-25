@@ -19,9 +19,15 @@
   The current mode is saved in NVS if restore mode is enabled, and restored
   on startup.
 
-  This example also simulates a temperature sensor using the thermometer cluster.
-  The temperature value is updated every minute, cycling between 18.0 and
-  24.0 degrees Celsius in steps of 0.1 degree.
+  This example also simulates 
+  1. a temperature sensor using the thermometer cluster.
+    The temperature value is updated every minute, cycling between 18.0 and
+    24.0 degrees Celsius in steps of 0.1 degree.  
+  2. a power meter using the metering cluster.
+    The instantaneous demand (power in W) and summation delivered (energy in Wh)
+    attributes are updated every minute. The power value cycles between
+    1kW and 2kW in steps of 0.1kW. The energy value is calculated based on
+    the power and time elapsed.
 
   Make sure to select "ZCZR coordinator/router" mode in Tools->Zigbee mode
 */
@@ -112,9 +118,11 @@ void setup() {
 
   // wait for serial port to connect, for debugging purposes
   // comment this out if not needed
+#if CORE_DEBUG_LEVEL >= 5
   while (!Serial) {
     ledBlink (CRGB::Blue, 50, 50);
   }
+#endif
   delay (2000);
 
   // Init button for factory reset
@@ -125,7 +133,7 @@ void setup() {
   // Set callback function for pilot wire mode change and power state change
   zbPilot.onPilotWireModeChange (setPilotWire);
 
-  if (zbPilot.begin (temperature, PowerDefault) == false) { 
+  if (zbPilot.begin (temperature, PowerDefault) == false) {
     while (1) {
       ledBlink (CRGB::Red, 50, 50);
     }
@@ -152,32 +160,6 @@ void setup() {
   }
 
   lastTempUpdate = millis(); // Initialize last temperature and power update time
-
-  // Configure temperature reporting: min 30s, max 300s, delta 0.1 C
-  // min: 30 seconds, never less than 30s to avoid flooding the network
-  // max: 300 seconds, report at least every 5 minutes
-  // delta: 0.1 C, report if temperature changes by 0.1 degree (with minimal interval of 30s)
-  // the default reporting configuration is 30s, 900s, 0.5 C
-  if (zbPilot.setTemperatureReporting (30, 300, 0.1)) { // min 30s, max 300s, delta 0.1 C
-    log_i ("Pilot Wire temperature reporting configured");
-  }
-  else {
-    log_w ("Failed to configure Pilot Wire temperature reporting");
-  }
-
-  if (zbPilot.setPowerWReporting (30, 300, 1.0f)) { // min 30s, max 300s, delta 1 W
-    log_i ("Pilot Wire power reporting configured");
-  }
-  else {
-    log_w ("Failed to configure Pilot Wire power reporting");
-  }
-
-  if (zbPilot.setEnergyWhReporting (30, 300, 1.0f)) { // min 30s, max 300s, delta 1 Wh
-    log_i ("Pilot Wire energy reporting configured");
-  }
-  else {
-    log_w ("Failed to configure Pilot Wire energy reporting");
-  }
 
   // Report initial attributes
   if (zbPilot.reportAttributes()) {

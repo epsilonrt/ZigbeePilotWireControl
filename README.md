@@ -16,7 +16,7 @@ The following example creates a virtual Zigbee Pilot Wire Control device using t
 
 The controller can be tested using a Zigbee coordinator with support for the Pilot Wire Control cluster, such as [ZHA (Zigbee Home Automation)](https://www.home-assistant.io/integrations/zha/) in Home Assistant.
 
-From Home Assistant with Zigbee integration, you can control the pilot wire mode using the Pilot Wire Control card automtically created for the device with the [quirks](extras/homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py) provided:
+From Home Assistant with Zigbee integration, you can control the pilot wire mode using the Pilot Wire Control card automtically created for the device with the [epsilonrt quirks](https://github.com/epsilonrt/ZigbeePilotWireControl/tree/main/extras/homeassistant) provided:
 
 ![Pilot Wire Control card in Home Assistant](https://raw.githubusercontent.com/epsilonrt/ZigbeePilotWireControl/main/extras/images/ha_lovelace_without_mes.png)
 
@@ -102,7 +102,7 @@ void loop() {
 }
 ```
 
-The complete example code can be found in the `examples/VirtualPilotSerial` folder of this repository. Other examples demonstrate using an RGB LED or real pilot wire output control.
+The complete example code can be found in the [`examples/VirtualPilotSerial`](https://github.com/epsilonrt/ZigbeePilotWireControl/tree/main/examples/VirtualPilotSerial) folder of this repository. Other examples demonstrate using an RGB LED.
 
 ## Temperature and Electric Metering
 
