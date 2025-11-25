@@ -26,6 +26,7 @@ var class_zigbee_pilot_wire_control =
     [ "reportAttribute", "class_zigbee_pilot_wire_control.html#a5d35a797e8cd9d41bfebe07923204d0c", null ],
     [ "reportAttributes", "class_zigbee_pilot_wire_control.html#a8097ceda2bf4be4a35a0cf5185aae133", null ],
     [ "reportEnergyWh", "class_zigbee_pilot_wire_control.html#a1a70eb4a4c2efafdc6a63542ca8b786f", null ],
+    [ "reportPilotModeAndOnOff", "class_zigbee_pilot_wire_control.html#aa52a7c3a67ee7843ec72df9f97aba3fc", null ],
     [ "reportPowerW", "class_zigbee_pilot_wire_control.html#a65d0e70e8ca0a28fe028ac4bf742e8eb", null ],
     [ "reportTemperature", "class_zigbee_pilot_wire_control.html#a8faaa8b46b446644c3ec7df8967cd642", null ],
     [ "setEnergyWh", "class_zigbee_pilot_wire_control.html#aacfa4e9aab6bd9e164bacf511021cc16", null ],

@@ -153,9 +153,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a75937e0967dd85e947515be1af4e88bb" id="r_a75937e0967dd85e947515be1af4e88bb"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_zigbee_pilot_wire_control.html#a75937e0967dd85e947515be1af4e88bb">setPilotWireMode</a> (ZigbeePilotWireMode mode)</td></tr>
 <tr class="memdesc:a75937e0967dd85e947515be1af4e88bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the Pilot Wire mode. This method updates the Pilot Wire mode attribute and notifies the application of the mode change via the registered callback function.  <br /></td></tr>
 <tr class="separator:a75937e0967dd85e947515be1af4e88bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8097ceda2bf4be4a35a0cf5185aae133" id="r_a8097ceda2bf4be4a35a0cf5185aae133"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_zigbee_pilot_wire_control.html#a8097ceda2bf4be4a35a0cf5185aae133">reportAttributes</a> ()</td></tr>
-<tr class="memdesc:a8097ceda2bf4be4a35a0cf5185aae133"><td class="mdescLeft">&#160;</td><td class="mdescRight">Report the current attributes to the Zigbee network. This method updates the Pilot Wire mode, On/Off and temperature (if enabled) attributes in the Zigbee stack.  <br /></td></tr>
-<tr class="separator:a8097ceda2bf4be4a35a0cf5185aae133"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa52a7c3a67ee7843ec72df9f97aba3fc" id="r_aa52a7c3a67ee7843ec72df9f97aba3fc"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_zigbee_pilot_wire_control.html#aa52a7c3a67ee7843ec72df9f97aba3fc">reportPilotModeAndOnOff</a> ()</td></tr>
+<tr class="memdesc:aa52a7c3a67ee7843ec72df9f97aba3fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Report the current Pilot Wire mode and On/Off attributes to the Zigbee network. This method call the callback to notify the application of the current mode, and updates the Pilot Wire mode and On/Off attributes in the Zigbee stack.  <br /></td></tr>
+<tr class="separator:aa52a7c3a67ee7843ec72df9f97aba3fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b056986ab0ec45c8ca3e94df0f91aea" id="r_a0b056986ab0ec45c8ca3e94df0f91aea"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_zigbee_pilot_wire_control.html#a0b056986ab0ec45c8ca3e94df0f91aea">setTemperature</a> (float value)</td></tr>
 <tr class="memdesc:a0b056986ab0ec45c8ca3e94df0f91aea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the temperature value for the temperature measurement cluster.  <br /></td></tr>
 <tr class="separator:a0b056986ab0ec45c8ca3e94df0f91aea"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -204,6 +204,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a85d3eb6ff0ff2ed1312f635b4c18a960" id="r_a85d3eb6ff0ff2ed1312f635b4c18a960"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_zigbee_pilot_wire_control.html#a85d3eb6ff0ff2ed1312f635b4c18a960">meteringStatus</a> () const</td></tr>
 <tr class="memdesc:a85d3eb6ff0ff2ed1312f635b4c18a960"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the current metering status value.  <br /></td></tr>
 <tr class="separator:a85d3eb6ff0ff2ed1312f635b4c18a960"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8097ceda2bf4be4a35a0cf5185aae133" id="r_a8097ceda2bf4be4a35a0cf5185aae133"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_zigbee_pilot_wire_control.html#a8097ceda2bf4be4a35a0cf5185aae133">reportAttributes</a> ()</td></tr>
+<tr class="memdesc:a8097ceda2bf4be4a35a0cf5185aae133"><td class="mdescLeft">&#160;</td><td class="mdescRight">Report the current attributes to the Zigbee network. This method updates the Pilot Wire mode, On/Off, temperature (if enabled) and metering (if enabled) attributes in the Zigbee stack.  <br /></td></tr>
+<tr class="separator:a8097ceda2bf4be4a35a0cf5185aae133"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a369d12a6437e5364744bb3f93bdfd587" id="r_a369d12a6437e5364744bb3f93bdfd587"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_zigbee_pilot_wire_control.html#a369d12a6437e5364744bb3f93bdfd587">enableNvs</a> (bool enable)</td></tr>
 <tr class="memdesc:a369d12a6437e5364744bb3f93bdfd587"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enable or disable restore mode. When restore mode is enabled, the Pilot Wire mode is restored from NVS on startup.  <br /></td></tr>
 <tr class="separator:a369d12a6437e5364744bb3f93bdfd587"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -463,7 +466,7 @@ Private Attributes</h2></td></tr>
 
 <p>Destructor for <a class="el" href="class_zigbee_pilot_wire_control.html" title="Class representing a Zigbee Pilot Wire Control endpoint. This class extends the ZigbeeEP class to imp...">ZigbeePilotWireControl</a>. Cleans up resources and ends NVS preferences. </p>
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00387">387</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00398">398</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">References <a class="el" href="class_zigbee_pilot_wire_control.html#ae09e0f1b02c0308abffc0530eca8956d">end()</a>.</p>
 <div class="dynheader">
@@ -492,6 +495,7 @@ Here is the call graph for this function:</div>
 
 <p>Initialize the <a class="el" href="class_zigbee_pilot_wire_control.html" title="Class representing a Zigbee Pilot Wire Control endpoint. This class extends the ZigbeeEP class to imp...">ZigbeePilotWireControl</a> endpoint and create clusters. This method sets up the necessary clusters for Pilot Wire Control, including On/Off, Pilot Wire mode and adds the endpoint to the Zigbee stack. </p>
 <dl class="section return"><dt>Returns</dt><dd>true if the initialization was successful, false otherwise. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This method must be called before to add the endpoint to the Zigbee core. </dd></dl>
 
 </div>
 </div>
@@ -519,6 +523,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>true if the initialization was successful, false otherwise. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This method must be called before to add the endpoint to the Zigbee core. </dd></dl>
 
 </div>
 </div>
@@ -564,6 +569,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>true if the initialization was successful, false otherwise. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This method must be called before to add the endpoint to the Zigbee core. </dd></dl>
 
 </div>
 </div>
@@ -602,6 +608,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>true if the initialization was successful, false otherwise. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This method must be called before to add the endpoint to the Zigbee core. </dd></dl>
 
 </div>
 </div>
@@ -725,7 +732,7 @@ Here is the call graph for this function:</div>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This setting is persisted in NVS. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00370">370</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00381">381</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">References <a class="el" href="class_zigbee_pilot_wire_control.html#a40ff501bc90960a31dd82fc1230a98d0">_nvs_enabled</a>, and <a class="el" href="class_zigbee_pilot_wire_control.html#a79859d3ba3705d9f49e55bae80a4bc89">_prefs</a>.</p>
 
@@ -756,7 +763,7 @@ Here is the call graph for this function:</div>
 
 <p>End the <a class="el" href="class_zigbee_pilot_wire_control.html" title="Class representing a Zigbee Pilot Wire Control endpoint. This class extends the ZigbeeEP class to imp...">ZigbeePilotWireControl</a> and clean up resources. This method should be called to properly release resources used by the <a class="el" href="class_zigbee_pilot_wire_control.html" title="Class representing a Zigbee Pilot Wire Control endpoint. This class extends the ZigbeeEP class to imp...">ZigbeePilotWireControl</a> instance. </p>
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00395">395</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00406">406</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">References <a class="el" href="class_zigbee_pilot_wire_control.html#a79859d3ba3705d9f49e55bae80a4bc89">_prefs</a>.</p>
 
@@ -810,7 +817,7 @@ Here is the call graph for this function:</div>
 <p>Check if restore mode is enabled. </p>
 <dl class="section return"><dt>Returns</dt><dd>true if restore mode is enabled, false otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00379">379</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00390">390</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">References <a class="el" href="class_zigbee_pilot_wire_control.html#a40ff501bc90960a31dd82fc1230a98d0">_nvs_enabled</a>.</p>
 
@@ -842,7 +849,7 @@ Here is the call graph for this function:</div>
 <p>Get the current metering status value. </p>
 <dl class="section return"><dt>Returns</dt><dd>The current metering status (bitmap U8 in ZCL). </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00359">359</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00363">363</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">References <a class="el" href="class_zigbee_pilot_wire_control.html#acd5c6644555d020ae201ad62a9b16260">_metering_cfg</a>.</p>
 
@@ -913,7 +920,7 @@ Here is the call graph for this function:</div>
 <p>Get the current Pilot Wire mode. </p>
 <dl class="section return"><dt>Returns</dt><dd>The current Pilot Wire mode as a ZigbeePilotWireMode enum value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00204">204</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00208">208</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">References <a class="el" href="class_zigbee_pilot_wire_control.html#a84f227b02d13bbebd3ccd47497341bf5">_current_mode</a>.</p>
 
@@ -970,7 +977,7 @@ Here is the call graph for this function:</div>
 <p>Get the current power state. </p>
 <dl class="section return"><dt>Returns</dt><dd>true if the power is ON, false if OFF. true if mode is PILOTWIRE_MODE_OFF, false otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00212">212</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00216">216</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">References <a class="el" href="class_zigbee_pilot_wire_control.html#af6ff4eb3e4f97f573c81fda63b180ca7">_current_state</a>.</p>
 
@@ -1079,7 +1086,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Report the current attributes to the Zigbee network. This method updates the Pilot Wire mode, On/Off and temperature (if enabled) attributes in the Zigbee stack. </p>
+<p>Report the current attributes to the Zigbee network. This method updates the Pilot Wire mode, On/Off, temperature (if enabled) and metering (if enabled) attributes in the Zigbee stack. </p>
 <dl class="section return"><dt>Returns</dt><dd>true if the attributes were reported successfully, false otherwise. </dd></dl>
 
 </div>
@@ -1101,6 +1108,25 @@ Here is the call graph for this function:</div>
 
 <p>Report the current summation delivered value to the Zigbee network. The reporting is configured via <a class="el" href="class_zigbee_pilot_wire_control.html#afd82311720caaf0dca4feac29d364d40" title="Set the reporting interval for the summation delivered attribute in the metering cluster.">setEnergyWhReporting()</a>, so this method can be used to force a report outside of the configured intervals. </p>
 <dl class="section return"><dt>Returns</dt><dd>true if the energy was reported successfully, false otherwise. </dd></dl>
+
+</div>
+</div>
+<a id="aa52a7c3a67ee7843ec72df9f97aba3fc" name="aa52a7c3a67ee7843ec72df9f97aba3fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa52a7c3a67ee7843ec72df9f97aba3fc">&#9670;&#160;</a></span>reportPilotModeAndOnOff()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool ZigbeePilotWireControl::reportPilotModeAndOnOff </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Report the current Pilot Wire mode and On/Off attributes to the Zigbee network. This method call the callback to notify the application of the current mode, and updates the Pilot Wire mode and On/Off attributes in the Zigbee stack. </p>
 
 </div>
 </div>
@@ -1501,7 +1527,7 @@ Here is the call graph for this function:</div>
 <p>Get the current temperature value. </p>
 <dl class="section return"><dt>Returns</dt><dd>The current temperature value in degrees Celsius. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00246">246</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00250">250</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">References <a class="el" href="class_zigbee_pilot_wire_control.html#ad8bf3f7a052bba238d96a42db832fcbb">_temperature_value</a>.</p>
 
@@ -1594,7 +1620,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00419">419</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00430">430</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="class_zigbee_pilot_wire_control.html#a7973c7168a4ff0571205bc10f125277e">pilotWireMode()</a>.</p>
 
@@ -1620,7 +1646,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00423">423</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00434">434</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="class_zigbee_pilot_wire_control.html#a26e873526128efe2168656bc367544b6">powerState()</a>.</p>
 
@@ -1646,7 +1672,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00424">424</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00435">435</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1670,7 +1696,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00437">437</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00448">448</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1694,7 +1720,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00438">438</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00449">449</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1718,7 +1744,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00434">434</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00445">445</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="class_zigbee_pilot_wire_control.html#a85d3eb6ff0ff2ed1312f635b4c18a960">meteringStatus()</a>.</p>
 
@@ -1744,7 +1770,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00433">433</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00444">444</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1768,7 +1794,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00436">436</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00447">447</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1792,7 +1818,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00425">425</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00436">436</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="class_zigbee_pilot_wire_control.html#a369d12a6437e5364744bb3f93bdfd587">enableNvs()</a>, and <a class="el" href="class_zigbee_pilot_wire_control.html#ae6bccfe7b926e399da2902764cc4bc74">isNvsEnabled()</a>.</p>
 
@@ -1818,7 +1844,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00421">421</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00432">432</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="class_zigbee_pilot_wire_control.html#ac77bd7f31027ee2b87fc22bb135f8fc1">onPilotWireModeChange()</a>.</p>
 
@@ -1844,7 +1870,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00426">426</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00437">437</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="class_zigbee_pilot_wire_control.html#a369d12a6437e5364744bb3f93bdfd587">enableNvs()</a>, and <a class="el" href="class_zigbee_pilot_wire_control.html#ae09e0f1b02c0308abffc0530eca8956d">end()</a>.</p>
 
@@ -1870,7 +1896,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00420">420</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00431">431</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1894,7 +1920,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00435">435</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00446">446</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1918,7 +1944,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00429">429</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00440">440</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1942,7 +1968,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00428">428</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00439">439</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 </div>
 </div>
@@ -1966,7 +1992,7 @@ Here is the call graph for this function:</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00430">430</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_zigbee_pilot_wire_control_8h_source.html#l00441">441</a> of file <a class="el" href="_zigbee_pilot_wire_control_8h_source.html">ZigbeePilotWireControl.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="class_zigbee_pilot_wire_control.html#aa241b3eb37e52a0ecf2e4e3fc34b2abc">temperature()</a>.</p>
 
@@ -1978,7 +2004,7 @@ Here is the call graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="class_zigbee_pilot_wire_control.html">ZigbeePilotWireControl</a></li>
-    <li class="footer">Generated on Mon Nov 24 2025 19:24:41 for ZigbeePilotWireControl Library by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Tue Nov 25 2025 17:15:50 for ZigbeePilotWireControl Library by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>

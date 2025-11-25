@@ -101,7 +101,7 @@ $(document).ready(function(){initNavTree('index.html',''); initResizable(); });
 Example: Virtual Pilot Wire Control Device</h1>
 <p>The following example creates a virtual Zigbee Pilot Wire Control device using the <code><a class="el" href="class_zigbee_pilot_wire_control.html" title="Class representing a Zigbee Pilot Wire Control endpoint. This class extends the ZigbeeEP class to imp...">ZigbeePilotWireControl</a></code> class. It outputs the current pilot wire mode to the serial console whenever it changes.</p>
 <p>The controller can be tested using a Zigbee coordinator with support for the Pilot Wire Control cluster, such as <a href="https://www.home-assistant.io/integrations/zha/">ZHA (Zigbee Home Automation)</a> in Home Assistant.</p>
-<p>From Home Assistant with Zigbee integration, you can control the pilot wire mode using the Pilot Wire Control card automtically created for the device with the <a href="extras/homeassistant/config/zha_quirks/epsilonrt/pilot_wire.py">quirks</a> provided:</p>
+<p>From Home Assistant with Zigbee integration, you can control the pilot wire mode using the Pilot Wire Control card automtically created for the device with the <a href="https://github.com/epsilonrt/ZigbeePilotWireControl/tree/main/extras/homeassistant">epsilonrt quirks</a> provided:</p>
 <p><img src="https://raw.githubusercontent.com/epsilonrt/ZigbeePilotWireControl/main/extras/images/ha_lovelace_without_mes.png" alt="Pilot Wire Control card in Home Assistant" class="inline"/></p>
 <p>On the serial console, you will see output like this when changing the mode from the controller:</p>
 <div class="fragment"><div class="line">Zigbee Virtual Pilot Wire Control starting...</div>
@@ -177,7 +177,7 @@ Example: Virtual Pilot Wire Control Device</h1>
 <div class="line">  delay (100);</div>
 <div class="line">}</div>
 <div class="ttc" id="aclass_zigbee_pilot_wire_control_html"><div class="ttname"><a href="class_zigbee_pilot_wire_control.html">ZigbeePilotWireControl</a></div><div class="ttdoc">Class representing a Zigbee Pilot Wire Control endpoint. This class extends the ZigbeeEP class to imp...</div><div class="ttdef"><b>Definition</b> <a href="_zigbee_pilot_wire_control_8h_source.html#l00098">ZigbeePilotWireControl.h:98</a></div></div>
-</div><!-- fragment --><p>The complete example code can be found in the <code>examples/VirtualPilotSerial</code> folder of this repository. Other examples demonstrate using an RGB LED or real pilot wire output control.</p>
+</div><!-- fragment --><p>The complete example code can be found in the <a href="https://github.com/epsilonrt/ZigbeePilotWireControl/tree/main/examples/VirtualPilotSerial"><code>examples/VirtualPilotSerial</code></a> folder of this repository. Other examples demonstrate using an RGB LED.</p>
 <h1><a class="anchor" id="autotoc_md3"></a>
 Temperature and Electric Metering</h1>
 <p>The library also includes support for optional Temperature Measurement and Electrical Measurement clusters. These can be used to report the ambient temperature and power consumption of the heater. See the <code>examples/VirtualPilotWithTempAndMeter</code> example for a demonstration of these features.</p>
@@ -188,7 +188,7 @@ Temperature and Electric Metering</h1>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Mon Nov 24 2025 19:24:41 for ZigbeePilotWireControl Library by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Tue Nov 25 2025 17:15:50 for ZigbeePilotWireControl Library by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
