@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # example: [examples/*/*]
-        example: [examples/VirtualPilotSerial/VirtualPilotSerial, examples/VirtualPilotRgbLed/VirtualPilotRgbLed]
+        example: [examples/*/*]
+        # example: [examples/VirtualPilotSerial/VirtualPilotSerial, examples/VirtualPilotRgbLed/VirtualPilotRgbLed, examples/VirtualPilotWithTempAndMeter/VirtualPilotWithTempAndMeter]
 
     steps:
     - uses: actions/checkout@v3
