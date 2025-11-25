@@ -1,7 +1,7 @@
 {
   "name": "ZigbeePilotWireControl",
-  "version": "1.0.0",
-  "description": "An Arduino library to control pilot wire electric heaters via Zigbee.",
+  "version": "1.0.1",
+  "description": "Control pilot-wire electric heaters via Zigbee on ESP32-C6 or ESP32-H2.",
   "keywords": [
     "zigbee",
     "pilot wire",
