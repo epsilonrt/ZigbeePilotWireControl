@@ -92,7 +92,7 @@ void setup() {
   zbPilot.onPilotWireModeChange (setPilotWire);
 
   zbPilot.begin ();
-  zbPilot.enableNvs (true); // restore mode from NVS
+  zbPilot.enableNvs (true); // restore pilot wire mode, energy summation from NVS
 
   // Add endpoint to Zigbee Core
   Zigbee.addEndpoint (&zbPilot);

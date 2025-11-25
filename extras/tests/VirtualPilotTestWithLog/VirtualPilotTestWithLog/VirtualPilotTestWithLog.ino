@@ -139,7 +139,7 @@ void setup() {
     }
   }
 
-  zbPilot.enableNvs (true); // restore mode from NVS
+  zbPilot.enableNvs (true); // restore pilot wire mode, energy summation from NVS
 
   zbPilot.printClusterInfo();
 

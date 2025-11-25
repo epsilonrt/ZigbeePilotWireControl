@@ -10,7 +10,7 @@
       "path": "examples/VirtualPilotSerial"
     },
     {
-      "path": "extras/tests/VirtualPilotTestWithLog"
+      "path": "examples/VirtualPilotWithTempAndMeter"
     }
   ],
   "settings": {}
