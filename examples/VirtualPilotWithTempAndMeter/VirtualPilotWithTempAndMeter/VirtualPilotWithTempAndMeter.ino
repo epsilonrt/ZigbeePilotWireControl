@@ -2,6 +2,16 @@
   SPDX-License-Identifier: BSD-3-Clause
   SPDX-FileCopyrightText: 2025 Pascal JEAN aka epsilonrt
 
+  Before Compile/Verify with Arduino IDE:
+  - Select the correct board: `Tools -> Board`.
+  - Select the End device Zigbee mode: `Tools -> Zigbee mode: Zigbee ZCZR (coordinator/router)`.
+  - Select Tools / USB CDC On Boot: "Enabled"
+  - Select Partition Scheme for Zigbee: `Tools -> Partition Scheme: Zigbee ZCZR 4MB with spiffs`
+  - Select the COM port: `Tools -> Port: xxx` where the `xxx` is the detected COM port.
+  - Optional: Set debug level to verbose to see all logs from Zigbee stack: `Tools -> Core Debug Level: Verbose`.
+
+  With PlatformIO, choose the appropriate environment in platformio.ini.
+
   This example creates a virtual Zigbee Pilot Wire Control device
   using the ZigbeePilotWireControl class with a serial output to indicate the mode:
   - Off: "Pilot Wire Mode: OFF"
@@ -27,7 +37,7 @@
     a power value between 0 and 5000W. The instantaneous demand (power in W) and summation delivered (energy in Wh)
     attributes are updated every minute via the metering cluster (0x0702).
 
-  Make sure to select "ZCZR coordinator/router" mode in Tools->Zigbee mode
+
 
   This sketch uses pelicanhu/ESPCPUTemp @ ^0.2.0 library to read the internal temperature of the ESP32-C6.
 */
@@ -43,7 +53,7 @@
 
 const uint16_t ZbeeEndPoint = 1;
 const uint8_t button = BOOT_PIN;
-const uint8_t powerMeterPin = A0; // GPIO0 / ADC1 channel 0
+const uint8_t powerMeterPin = A1; // /!\ Change this pin according to your board /!\ 
 
 // Create ZigbeePilotWireControl instance
 ZigbeePilotWireControl  zbPilot (ZbeeEndPoint, -10.0f, 80.0f, 1); // temp min -10°C, temp max 80°C, power multiplier 1
@@ -66,10 +76,11 @@ setPilotWire (ZigbeePilotWireMode mode) {
 
 int32_t
 readPowerMeter() {
-  // Read the analog value from the power meter pin
-  int32_t analogValue = analogRead (powerMeterPin);
-  // Map the analog value (0-4095) to power in W (0-5000W)
-  int32_t powerW = map (analogValue, 0, 4095, 0, 5000);
+
+  float voltage = analogReadMilliVolts (powerMeterPin);
+  Serial.printf ("Analog voltage read: %.2f mV\n", voltage);
+  // Map voltage (0-3300mV) to power (0-5000W)
+  int32_t powerW = static_cast<int32_t> ((voltage * 5000.0f) / 3300.0f);
   return powerW;
 }
 

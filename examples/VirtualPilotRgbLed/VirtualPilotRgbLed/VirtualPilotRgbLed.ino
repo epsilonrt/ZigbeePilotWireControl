@@ -2,6 +2,14 @@
   SPDX-License-Identifier: BSD-3-Clause
   SPDX-FileCopyrightText: 2025 Pascal JEAN aka epsilonrt
 
+  Before Compile/Verify with Arduino IDE:
+  - Select the correct board: `Tools -> Board`.
+  - Select the End device Zigbee mode: `Tools -> Zigbee mode: Zigbee ZCZR (coordinator/router)`.
+  - Select Partition Scheme for Zigbee: `Tools -> Partition Scheme: Zigbee ZCZR 4MB with spiffs`
+  - Select the COM port: `Tools -> Port: xxx` where the `xxx` is the detected COM port.
+
+  With PlatformIO, choose the appropriate environment in platformio.ini.
+
   This example creates a virtual Zigbee Pilot Wire Control device
   using the ZigbeePilotWireControl class and a RGB LED to indicate the mode:
   - Off: Black (LED off)
